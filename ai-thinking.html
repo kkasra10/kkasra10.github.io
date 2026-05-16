@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Thinking</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #06060f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="800"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 800;
+const CX = W / 2, CY = H / 2 - 30;
+const R = 210;
+
+// --- Dot sphere (fibonacci distribution) ---
+const NUM_DOTS = 320;
+const dots = [];
+const PHI = Math.PI * (3 - Math.sqrt(5));
+for (let i = 0; i < NUM_DOTS; i++) {
+  const y = 1 - (i / (NUM_DOTS - 1)) * 2;
+  const r = Math.sqrt(1 - y * y);
+  const theta = PHI * i;
+  dots.push({ ox: Math.cos(theta) * r, oy: y, oz: Math.sin(theta) * r });
+}
+
+// --- Orbiting ring dots (equatorial decoration) ---
+const RING_DOTS = 60;
+const ring = [];
+for (let i = 0; i < RING_DOTS; i++) {
+  const a = (i / RING_DOTS) * Math.PI * 2;
+  ring.push({ a, tilt: 0.42 }); // orbital tilt angle
+}
+
+// --- Pulses ---
+const pulses = [];
+function spawnPulse() {
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+  pulses.push({
+    nx: Math.sin(phi) * Math.cos(theta),
+    ny: Math.cos(phi),
+    nz: Math.sin(phi) * Math.sin(theta),
+    age: 0,
+    maxAge: 110 + Math.random() * 40,
+    speed: 0.018 + Math.random() * 0.012,
+    wavefront: 0
+  });
+}
+for (let i = 0; i < 3; i++) spawnPulse();
+
+// --- Tasks ---
+const TASKS = [
+  'Analyzing context…',
+  'Searching vector space…',
+  'Optimizing response…',
+  'Loading semantic embeddings…',
+  'Cross-referencing knowledge graph…',
+  'Evaluating token probabilities…',
+  'Synthesizing output…',
+  'Calibrating attention heads…',
+  'Resolving ambiguities…',
+  'Indexing memory clusters…',
+];
+let taskIdx = 0, taskAge = 0;
+const TASK_HOLD = 110, TASK_FADE = 22;
+
+// --- Rotation state ---
+let rotY = 0, rotX = 0.28;
+let frame = 0;
+
+function rotateY(x, y, z, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: c * x + s * z, y, z: -s * x + c * z };
+}
+function rotateX(x, y, z, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x, y: c * y - s * z, z: s * y + c * z };
+}
+function project(x, y, z) {
+  const fov = 700;
+  const sc = fov / (fov + z * R + R * 0.3);
+  return { sx: CX + x * R * sc, sy: CY + y * R * sc, sc };
+}
+
+// --- Drawing helpers ---
+function drawGlow(x, y, r, color) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+// --- Main loop ---
+function tick() {
+  frame++;
+  rotY += 0.0055;
+  rotX = 0.28 + Math.sin(frame * 0.0025) * 0.12;
+
+  // Background
+  ctx.fillStyle = '#06060f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Ambient orb glow
+  drawGlow(CX, CY, R * 1.9, 'rgba(60,90,255,0.07)');
+  drawGlow(CX, CY, R * 1.1, 'rgba(80,110,255,0.10)');
+
+  // Update pulses
+  for (let i = pulses.length - 1; i >= 0; i--) {
+    const p = pulses[i];
+    p.age++;
+    p.wavefront += p.speed;
+    if (p.age > p.maxAge) { pulses.splice(i, 1); spawnPulse(); }
+  }
+
+  // --- Project sphere dots ---
+  const projected = dots.map(d => {
+    let p = rotateY(d.ox, d.oy, d.oz, rotY);
+    p = rotateX(p.x, p.y, p.z, rotX);
+    const pr = project(p.x, p.y, p.z);
+
+    // Pulse contribution (computed in original space)
+    let pulse = 0;
+    for (const pu of pulses) {
+      const dot = d.ox * pu.nx + d.oy * pu.ny + d.oz * pu.nz;
+      const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+      const diff = angle - pu.wavefront;
+      const width = 0.22;
+      if (diff > -width && diff < width * 0.5) {
+        const t = 1 - Math.abs(diff) / width;
+        const fade = 1 - pu.age / pu.maxAge;
+        pulse = Math.max(pulse, t * fade);
+      }
+    }
+
+    return { sx: pr.sx, sy: pr.sy, sc: pr.sc, depth: p.z, pulse };
+  });
+
+  // Sort back-to-front
+  projected.sort((a, b) => a.depth - b.depth);
+
+  // Draw sphere dots
+  for (const p of projected) {
+    const depth = (p.depth + 1) / 2; // 0..1
+    const visible = depth > 0 ? 1 : 0;
+    const baseR = 1.2 + depth * 1.8;
+    const baseA = 0.15 + depth * 0.65;
+    const boost = p.pulse;
+
+    const size = baseR + boost * 4;
+    const alpha = Math.min(1, baseA + boost * 0.9);
+
+    // Color blends blue→cyan→white on pulse
+    const cr = Math.round(80  + depth * 40  + boost * 175);
+    const cg = Math.round(110 + depth * 50  + boost * 145);
+    const cb = Math.round(230 + boost * 25);
+
+    // Halo on bright pulses
+    if (boost > 0.25) {
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, size * 2.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(160,210,255,${boost * 0.18})`;
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+    ctx.fill();
+  }
+
+  // --- Orbiting ring ---
+  const ringItems = ring.map(r => {
+    const x0 = Math.cos(r.a + rotY * 1.4);
+    const z0 = Math.sin(r.a + rotY * 1.4);
+    const y0 = z0 * Math.sin(r.tilt);
+    const zr = z0 * Math.cos(r.tilt);
+
+    let p = rotateX(x0, y0, zr, rotX);
+    const pr = project(p.x, p.y, p.z);
+    const depth = (p.z + 1) / 2;
+    return { sx: pr.sx, sy: pr.sy, depth, front: p.z > 0 };
+  });
+  ringItems.sort((a, b) => a.depth - b.depth);
+
+  for (const r of ringItems) {
+    const a = 0.3 + r.depth * 0.55;
+    const sz = 1.0 + r.depth * 1.2;
+    ctx.beginPath();
+    ctx.arc(r.sx, r.sy, sz, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,230,255,${a})`;
+    ctx.fill();
+  }
+
+  // --- Scan line shimmer across orb ---
+  const scanPhase = (frame % 140) / 140;
+  const scanX = CX - R + scanPhase * R * 2;
+  const scanGrad = ctx.createLinearGradient(scanX - 30, 0, scanX + 30, 0);
+  scanGrad.addColorStop(0, 'rgba(180,210,255,0)');
+  scanGrad.addColorStop(0.5, 'rgba(180,210,255,0.06)');
+  scanGrad.addColorStop(1, 'rgba(180,210,255,0)');
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = scanGrad;
+  ctx.fillRect(scanX - 30, CY - R, 60, R * 2);
+  ctx.restore();
+
+  // --- Task text ---
+  taskAge++;
+  if (taskAge >= TASK_HOLD) { taskAge = 0; taskIdx = (taskIdx + 1) % TASKS.length; }
+  let alpha;
+  if (taskAge < TASK_FADE) alpha = taskAge / TASK_FADE;
+  else if (taskAge > TASK_HOLD - TASK_FADE) alpha = (TASK_HOLD - taskAge) / TASK_FADE;
+  else alpha = 1;
+
+  const textY = CY + R + 52;
+
+  // Subtle underline bar
+  const barW = 260, barH = 2;
+  ctx.fillStyle = 'rgba(60,80,180,0.25)';
+  ctx.fillRect(CX - barW / 2, textY + 10, barW, barH);
+
+  // Animated fill inside bar
+  const prog = (frame % 80) / 80;
+  const fillGrad = ctx.createLinearGradient(CX - barW / 2, 0, CX + barW / 2, 0);
+  fillGrad.addColorStop(Math.max(0, prog - 0.12), 'rgba(120,180,255,0)');
+  fillGrad.addColorStop(prog, 'rgba(180,230,255,0.85)');
+  fillGrad.addColorStop(Math.min(1, prog + 0.12), 'rgba(120,180,255,0)');
+  ctx.fillStyle = fillGrad;
+  ctx.fillRect(CX - barW / 2, textY + 10, barW, barH);
+
+  // Task label
+  ctx.textAlign = 'center';
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillStyle = `rgba(160,200,255,${alpha * 0.9})`;
+  ctx.fillText(TASKS[taskIdx], CX, textY);
+
+  // Blinking cursor
+  const cursorOn = Math.floor(frame / 18) % 2 === 0;
+  if (cursorOn) {
+    const tw = ctx.measureText(TASKS[taskIdx]).width;
+    ctx.fillStyle = `rgba(160,200,255,${alpha * 0.7})`;
+    ctx.fillRect(CX + tw / 2 + 4, textY - 11, 7, 13);
+  }
+
+  // Small "AI" label at top of orb
+  ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillStyle = 'rgba(100,150,255,0.35)';
+  ctx.fillText('NEURAL PROCESSING', CX, CY - R - 22);
+
+  requestAnimationFrame(tick);
+}
+
+tick();
+</script>
+</body>
+</html>
