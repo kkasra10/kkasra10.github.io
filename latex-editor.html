@@ -500,7 +500,91 @@
       flex-shrink: 0;
       border-bottom: 1.5px solid #e5e7eb;
       background: #f3f4f6;
+      position: relative;
     }
+
+    /* ── Settings button + panel ── */
+    #settingsBtn {
+      margin-left: auto;
+      padding: 9px 14px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    .settings-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 14px 18px;
+      z-index: 300;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .settings-panel.hidden { display: none; }
+    .settings-panel-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #9ca3af; margin-bottom: 2px;
+    }
+    .settings-row {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+    }
+    .settings-label { font-size: 13px; font-weight: 500; color: #374151; white-space: nowrap; }
+    .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-knob {
+      position: absolute; inset: 0; border-radius: 20px;
+      background: #d1d5db; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-knob::before {
+      content: ''; position: absolute; width: 14px; height: 14px;
+      border-radius: 50%; background: #fff; top: 3px; left: 3px;
+      transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .toggle-knob { background: #3b6ef5; }
+    .toggle-switch input:checked + .toggle-knob::before { transform: translateX(16px); }
+
+    /* ── Dark mode overrides ── */
+    body.dark { background: #111827; color: #f9fafb; }
+    body.dark .sidebar { background: #1f2937; border-right-color: #374151; }
+    body.dark .sidebar-header { border-bottom-color: #374151; color: #9ca3af; }
+    body.dark .sidebar-search { border-bottom-color: #374151; }
+    body.dark .sidebar-search input { background: #111827; border-color: #374151; color: #f9fafb; }
+    body.dark .sidebar-search input::placeholder { color: #4b5563; }
+    body.dark .sidebar-scroll::-webkit-scrollbar-thumb { background: #374151; }
+    body.dark .symbol-group-title { color: #6b7280; }
+    body.dark .symbol-btn:hover { background: #1e3a5f; border-color: #2d4a7a; }
+    body.dark .symbol-cmd { color: #4b5563; }
+    body.dark .mode-tabs { background: #1a2332; border-bottom-color: #374151; }
+    body.dark .mode-tab { color: #6b7280; }
+    body.dark .mode-tab.active { background: #111827; color: #f9fafb; }
+    body.dark .mode-tab:hover:not(.active) { color: #9ca3af; }
+    body.dark .align-toolbar { background: #1f2937; border-bottom-color: #374151; }
+    body.dark .align-btn { color: #6b7280; }
+    body.dark .align-btn:hover { background: #374151; color: #d1d5db; }
+    body.dark .align-btn.active { background: #1e3a5f; border-color: #2d4a7a; color: #93bbff; }
+    body.dark .align-sep { background: #374151; }
+    body.dark .paper-dl-btn { border-color: #374151; color: #9ca3af; background: #1f2937; }
+    body.dark .paper-dl-btn:hover { background: #374151; color: #f9fafb; }
+    body.dark .input-area { background: #1f2937; border-top-color: #374151; }
+    body.dark .input-label { color: #6b7280; }
+    body.dark .color-toolbar { border-top-color: #374151; }
+    body.dark .color-toolbar-label { color: #6b7280; }
+    body.dark .latex-input { background: #111827; border-color: #374151; color: #f9fafb; }
+    body.dark .latex-input:focus { border-color: #3b6ef5; box-shadow: 0 0 0 3px rgba(59,110,245,0.18); }
+    body.dark .latex-input::placeholder { color: #374151; }
+    body.dark .hint-key { background: #1f2937; border-color: #374151; color: #6b7280; }
+    body.dark .output-area { background: #ffffff; }
+    body.dark .settings-panel { background: #1f2937; border-color: #374151; }
+    body.dark .settings-panel-title { color: #6b7280; }
+    body.dark .settings-label { color: #d1d5db; }
+    body.dark .toggle-knob { background: #374151; }
+    body.dark #sidebar-toggle { background: #3b6ef5; }
 
     .mode-tab {
       padding: 9px 20px;
@@ -1142,6 +1226,24 @@
     <button class="mode-tab active" id="tabLatex">LaTeX</button>
     <button class="mode-tab" id="tabAnimate">Animate</button>
     <button class="mode-tab" id="tabPaper">Paper</button>
+    <button class="mode-tab" id="settingsBtn" title="Settings">⚙</button>
+    <div class="settings-panel hidden" id="settingsPanel">
+      <div class="settings-panel-title">Settings</div>
+      <div class="settings-row">
+        <span class="settings-label">Auto-save input</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="settingAutoSave">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Dark mode</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="settingDarkMode">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+    </div>
   </div>
 
   <!-- LaTeX panel -->
@@ -3741,11 +3843,61 @@ function render() {
   });
 }
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+const SETTINGS_KEY = 'lx_settings';
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveSettings(patch) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign(loadSettings(), patch)));
+}
+
+function applySettings() {
+  const s = loadSettings();
+  // Dark mode
+  document.body.classList.toggle('dark', !!s.darkMode);
+  document.getElementById('settingDarkMode').checked = !!s.darkMode;
+  // Auto-save: restore saved input
+  document.getElementById('settingAutoSave').checked = !!s.autoSave;
+  if (s.autoSave && s.savedInput) {
+    document.getElementById('latexInput').value = s.savedInput;
+  }
+}
+
+document.getElementById('settingDarkMode').addEventListener('change', function() {
+  saveSettings({ darkMode: this.checked });
+  document.body.classList.toggle('dark', this.checked);
+});
+
+document.getElementById('settingAutoSave').addEventListener('change', function() {
+  saveSettings({ autoSave: this.checked });
+  if (!this.checked) saveSettings({ savedInput: '' });
+});
+
+// Toggle settings panel open/close
+document.getElementById('settingsBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('settingsPanel').classList.toggle('hidden');
+});
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('settingsPanel');
+  if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target.id !== 'settingsBtn') {
+    panel.classList.add('hidden');
+  }
+});
+
+// Auto-save: persist input on each change when enabled
+function autoSaveInput(val) {
+  if (loadSettings().autoSave) saveSettings({ savedInput: val });
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 const waitForKatex = setInterval(() => {
   if (typeof katex !== 'undefined') {
     clearInterval(waitForKatex);
     buildSidebar();
+    applySettings();
   }
 }, 30);
 
@@ -3785,7 +3937,8 @@ document.getElementById('redoBtn').addEventListener('click', () => {
 document.getElementById('latexInput').addEventListener('input', function() {
   render();
   clearTimeout(histTimer);
-  histTimer = setTimeout(() => histPush(this.value), 600);
+  const val = this.value;
+  histTimer = setTimeout(() => { histPush(val); autoSaveInput(val); }, 600);
 });
 
 // ── Color toolbar ────────────────────────────────────────────────────────────
