@@ -1030,7 +1030,15 @@
 
     /* ── Responsive ── */
     @media (max-width: 700px) {
-      body { flex-direction: column; height: 100dvh; overflow: hidden; }
+      body { flex-direction: column; height: 100dvh; height: 100vh; overflow: hidden; }
+
+      /* Text scaling for mobile */
+      .output-line .katex { font-size: 1.1em; }
+      .latex-input { font-size: 16px; } /* prevents iOS zoom on focus */
+      .pb-text-body, .pb-abstract-body, .pb-env-content { font-size: 12px; }
+      .pb-title-render { font-size: 20px; }
+      .pb-section-num { font-size: 15px; }
+      .placeholder-text { font-size: 14px; }
 
       #sidebar-toggle { display: flex; }
 
