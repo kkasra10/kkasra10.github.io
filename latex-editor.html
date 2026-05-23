@@ -322,6 +322,8 @@
       overflow-y: auto;
       flex: 1;
       padding: 8px 8px 20px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -408,6 +410,9 @@
       padding: 48px 60px;
       overflow-y: auto;
       gap: 4px;
+      color: #1f2937;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .output-area::-webkit-scrollbar { width: 5px; }
@@ -1058,17 +1063,20 @@
 
       /* ── Output area: normal vs keyboard-open ── */
       .output-area {
-        flex: 1; min-height: 60px;
+        flex: 1; min-height: 90px;
         padding: 10px 12px;
-        transition: flex 0.2s ease, min-height 0.2s ease;
+        transition: flex 0.18s ease, min-height 0.18s ease;
         overflow-y: auto;
+        justify-content: flex-start;
       }
       /* When keyboard open, collapse output to a small peek strip */
       body.keyboard-open .output-area {
-        flex: 0 0 72px;
-        min-height: 72px;
+        flex: 0 0 80px;
+        min-height: 80px;
         overflow-y: auto;
       }
+      /* Push input to bottom of panel so no gap sits between output and keyboard */
+      body.keyboard-open .input-area { margin-top: auto; }
       body.keyboard-open .placeholder-text { display: none; }
 
       /* ── Compress top toolbar rows ── */
@@ -1076,21 +1084,23 @@
       .mode-tab { padding: 6px 10px; font-size: 11px; }
 
       .align-toolbar {
-        padding: 3px 6px; gap: 2px; flex-shrink: 0;
+        padding: 4px 8px; gap: 3px; flex-shrink: 0;
         overflow-x: auto; flex-wrap: nowrap;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
       .align-toolbar-label { display: none; }
-      .align-btn { width: 22px; height: 20px; font-size: 11px; }
+      .align-btn { width: 26px; height: 22px; font-size: 12px; }
       .paper-dl-btn { font-size: 9px; padding: 2px 5px; }
 
       .color-toolbar {
-        padding: 3px 6px; gap: 3px; flex-shrink: 0;
+        padding: 4px 8px; gap: 4px; flex-shrink: 0;
         overflow-x: auto; flex-wrap: nowrap;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
       .color-toolbar-label { display: none; }
-      .color-swatch { width: 18px; height: 18px; flex-shrink: 0; }
+      .color-swatch { width: 20px; height: 20px; flex-shrink: 0; }
       .color-apply-btn { font-size: 10px; padding: 2px 6px; white-space: nowrap; }
 
       .input-area { padding: 6px 10px 8px; flex-shrink: 0; }
@@ -1098,7 +1108,7 @@
       .input-hint { display: none; }
 
       /* Prevent iOS zoom on focus */
-      .latex-input { font-size: 16px !important; min-height: 52px; max-height: 110px; }
+      .latex-input { font-size: 16px !important; min-height: 44px; max-height: 100px; }
       input, textarea, select { font-size: 16px !important; }
 
       .output-line .katex { font-size: 1.2em; }
