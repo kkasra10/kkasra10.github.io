@@ -3528,6 +3528,10 @@ function buildSidebar() {
       cmdLabel.className = 'symbol-cmd';
       cmdLabel.textContent = group.wide ? (item.label || item.cmd) : item.cmd;
 
+      btn.dataset.label  = (item.label || '').toLowerCase();
+      btn.dataset.render = item.render || item.cmd;
+      btn.dataset.dm     = item.dm ? '1' : '';
+
       btn.appendChild(preview);
       btn.appendChild(cmdLabel);
       btn.addEventListener('mousedown', e => {
@@ -3544,6 +3548,7 @@ function buildSidebar() {
         } else {
           insertSymbol(item.cmd);
         }
+        addRecent({ cmd: item.cmd, render: item.render || item.cmd, dm: !!item.dm, label: item.label || '' });
       });
       grid.appendChild(btn);
     });
@@ -3553,16 +3558,107 @@ function buildSidebar() {
   });
 
   document.getElementById('totalCount').textContent = total + ' symbols';
+  renderRecents();
+}
+
+// ── Recently used ─────────────────────────────────────────────────────────────
+const RECENTS_KEY = 'lx_recents';
+const RECENTS_MAX = 12;
+
+function getRecents() {
+  try { return JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function addRecent(item) {
+  let r = getRecents().filter(x => x.cmd !== item.cmd);
+  r.unshift(item);
+  if (r.length > RECENTS_MAX) r = r.slice(0, RECENTS_MAX);
+  localStorage.setItem(RECENTS_KEY, JSON.stringify(r));
+  renderRecents();
+}
+
+function makeRecentBtn(item) {
+  const btn = document.createElement('button');
+  btn.className = 'symbol-btn';
+  btn.title = item.cmd;
+  btn.dataset.cmd   = item.cmd.toLowerCase();
+  btn.dataset.label = (item.label || '').toLowerCase();
+
+  const preview = document.createElement('div');
+  preview.className = 'symbol-preview';
+  try {
+    preview.innerHTML = katex.renderToString(item.render || item.cmd, {
+      throwOnError: false, displayMode: !!item.dm, strict: false,
+    });
+  } catch(_) { preview.textContent = item.label || item.cmd; }
+
+  const cmdLabel = document.createElement('div');
+  cmdLabel.className = 'symbol-cmd';
+  cmdLabel.textContent = item.cmd;
+
+  btn.appendChild(preview);
+  btn.appendChild(cmdLabel);
+  btn.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const isPaper   = document.getElementById('tabPaper').classList.contains('active');
+    const isAnimate = document.getElementById('tabAnimate').classList.contains('active');
+    if (isPaper) insertIntoPaperBlock(item.cmd);
+    else if (isAnimate) insertCommand('show ' + item.cmd + ' at 50 50');
+    else insertSymbol(item.cmd);
+    addRecent(item);
+  });
+  return btn;
+}
+
+function renderRecents() {
+  const panel = document.getElementById('symbolPanel');
+  let group = document.getElementById('recents-group');
+  const recents = getRecents();
+
+  if (!recents.length) { if (group) group.remove(); return; }
+
+  if (!group) {
+    group = document.createElement('div');
+    group.className = 'symbol-group';
+    group.id = 'recents-group';
+    group.dataset.group = 'recently used';
+    panel.insertBefore(group, panel.firstChild);
+  }
+
+  group.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'symbol-group-title';
+  title.innerHTML = 'Recently Used <span class="count">' + recents.length + '</span>';
+  group.appendChild(title);
+
+  const grid = document.createElement('div');
+  grid.className = 'symbol-grid';
+  recents.forEach(item => grid.appendChild(makeRecentBtn(item)));
+  group.appendChild(grid);
 }
 
 // ── Search ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput').addEventListener('input', function () {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('.symbol-group').forEach(group => {
+    const raw = this.value.toLowerCase().trim();
+    // Strip leading backslash so "\frac" and "frac" both work
+    const q = raw.replace(/^\\+/, '');
+
+    // Hide recents while searching to reduce noise
+    const recentsGroup = document.getElementById('recents-group');
+    if (recentsGroup) recentsGroup.classList.toggle('hidden', q.length > 0);
+
+    document.querySelectorAll('.symbol-group:not(#recents-group)').forEach(group => {
+      const groupName = group.dataset.group || '';
       let anyVisible = false;
       group.querySelectorAll('.symbol-btn').forEach(btn => {
-        const match = !q || btn.dataset.cmd.includes(q) || btn.title.toLowerCase().includes(q);
+        if (!q) { btn.style.display = ''; anyVisible = true; return; }
+        // Strip backslash and braces from cmd for cleaner matching
+        const cmd   = btn.dataset.cmd.replace(/^\\+/, '').replace(/[{}]/g, '');
+        const label = btn.dataset.label || '';
+        // Every space-separated word must match somewhere (cmd, label, or group)
+        const words = q.split(/\s+/);
+        const match = words.every(w => cmd.includes(w) || label.includes(w) || groupName.includes(w));
         btn.style.display = match ? '' : 'none';
         if (match) anyVisible = true;
       });
