@@ -1157,8 +1157,10 @@
     <button class="align-btn"        id="valignBottom" title="Bottom">&#8681;</button>
     <div style="margin-left:auto;display:flex;gap:5px;">
       <button class="paper-dl-btn" id="latexCopyBtn" title="Copy all LaTeX source">&#10064; Copy LaTeX</button>
+      <button class="paper-dl-btn" id="latexCopyImg" title="Copy rendered output to clipboard">&#128203; Copy Image</button>
       <button class="paper-dl-btn" id="latexDlPng"   title="Save output as PNG">&#8659; PNG</button>
       <button class="paper-dl-btn" id="latexDlJpg"   title="Save output as JPG">&#8659; JPG</button>
+      <button class="paper-dl-btn" id="latexDlPdf"   title="Save output as PDF">&#8659; PDF</button>
     </div>
   </div>
   <div class="output-area" id="output">
@@ -4292,6 +4294,76 @@ async function downloadLatexOutput(fmt) {
 
 document.getElementById('latexDlPng').addEventListener('click', () => downloadLatexOutput('png'));
 document.getElementById('latexDlJpg').addEventListener('click', () => downloadLatexOutput('jpg'));
+
+// ── Copy output as image to clipboard ────────────────────────────────────────
+document.getElementById('latexCopyImg').addEventListener('click', async () => {
+  const btn = document.getElementById('latexCopyImg');
+  const orig = btn.textContent;
+  btn.textContent = 'Copying…'; btn.disabled = true;
+  try {
+    const h2c = await loadH2C();
+    const canvas = await h2c(document.getElementById('output'), {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+    });
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
+  } catch(err) {
+    // Fallback: trigger download instead
+    try {
+      const h2c = await loadH2C();
+      const canvas = await h2c(document.getElementById('output'), {
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+      });
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'latex.png'; a.click();
+    } catch(_) { alert('Copy failed — try PNG instead.'); }
+    btn.textContent = orig; btn.disabled = false;
+  }
+});
+
+// ── PDF export ────────────────────────────────────────────────────────────────
+let _jspdf = null;
+function loadJsPDF() {
+  if (_jspdf) return _jspdf;
+  _jspdf = new Promise((res, rej) => {
+    if (window.jspdf) { res(window.jspdf.jsPDF); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = () => res(window.jspdf.jsPDF);
+    s.onerror = () => rej(new Error('jsPDF failed to load'));
+    document.head.appendChild(s);
+  });
+  return _jspdf;
+}
+
+document.getElementById('latexDlPdf').addEventListener('click', async () => {
+  const btn = document.getElementById('latexDlPdf');
+  const orig = btn.textContent;
+  btn.textContent = 'Loading…'; btn.disabled = true;
+  try {
+    const [h2c, jsPDF] = await Promise.all([loadH2C(), loadJsPDF()]);
+    const canvas = await h2c(document.getElementById('output'), {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const pw = canvas.width / 2;
+    const ph = canvas.height / 2;
+    const pdf = new jsPDF({
+      orientation: pw >= ph ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [pw, ph],
+    });
+    pdf.addImage(imgData, 'PNG', 0, 0, pw, ph);
+    pdf.save('latex.pdf');
+  } catch(err) {
+    alert(err.message);
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+});
 
 // ── Animate interpreter ───────────────────────────────────────────────────────
 let animObjs = {};      // id -> { el, x, y, scale }
