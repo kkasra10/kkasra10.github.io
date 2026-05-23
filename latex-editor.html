@@ -1155,6 +1155,9 @@
     <button class="align-btn"        id="valignTop"    title="Top">&#8679;</button>
     <button class="align-btn active" id="valignMiddle" title="Middle">&#8693;</button>
     <button class="align-btn"        id="valignBottom" title="Bottom">&#8681;</button>
+    <div class="align-sep"></div>
+    <button class="align-btn" id="undoBtn" title="Undo" disabled>&#8630;</button>
+    <button class="align-btn" id="redoBtn" title="Redo" disabled>&#8631;</button>
     <div style="margin-left:auto;display:flex;gap:5px;">
       <button class="paper-dl-btn" id="latexCopyBtn" title="Copy all LaTeX source">&#10064; Copy LaTeX</button>
       <button class="paper-dl-btn" id="latexCopyImg" title="Copy rendered output to clipboard">&#128203; Copy Image</button>
@@ -3746,7 +3749,44 @@ const waitForKatex = setInterval(() => {
   }
 }, 30);
 
-document.getElementById('latexInput').addEventListener('input', render);
+// ── Undo / Redo history ───────────────────────────────────────────────────────
+const HIST_MAX = 100;
+let histStack = [''];
+let histIdx   = 0;
+let histTimer = null;
+
+function histPush(val) {
+  histStack = histStack.slice(0, histIdx + 1);
+  if (histStack[histIdx] === val) return;
+  histStack.push(val);
+  if (histStack.length > HIST_MAX) histStack.shift();
+  histIdx = histStack.length - 1;
+  updateHistBtns();
+}
+
+function applyHist() {
+  document.getElementById('latexInput').value = histStack[histIdx];
+  render();
+  updateHistBtns();
+}
+
+function updateHistBtns() {
+  document.getElementById('undoBtn').disabled = histIdx <= 0;
+  document.getElementById('redoBtn').disabled = histIdx >= histStack.length - 1;
+}
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (histIdx > 0) { histIdx--; applyHist(); }
+});
+document.getElementById('redoBtn').addEventListener('click', () => {
+  if (histIdx < histStack.length - 1) { histIdx++; applyHist(); }
+});
+
+document.getElementById('latexInput').addEventListener('input', function() {
+  render();
+  clearTimeout(histTimer);
+  histTimer = setTimeout(() => histPush(this.value), 600);
+});
 
 // ── Color toolbar ────────────────────────────────────────────────────────────
 let activeColor = '#1f2937';
