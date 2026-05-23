@@ -4773,25 +4773,36 @@ document.getElementById('sidebar').addEventListener('click', e => {
 });
 
 // ── Virtual keyboard autofit ──────────────────────────────────────────────
-// 100dvh already handles modern Chrome/Safari. This JS catches older browsers
-// and ensures the layout snaps immediately (dvh has a slight lag on some devices).
 (function () {
   if (!window.visualViewport) return;
-  var isMobile = window.innerWidth <= 700;
+  var isMobile = function() { return window.innerWidth <= 700; };
+  var toggle = document.getElementById('sidebar-toggle');
+  var sidebar = document.getElementById('sidebar');
+
   function applyHeight() {
-    if (!isMobile) return;
-    // Use visualViewport height (excludes keyboard) instead of window.innerHeight
-    document.body.style.height = window.visualViewport.height + 'px';
-    // Keep the sidebar toggle above the keyboard
-    var toggle = document.getElementById('sidebar-toggle');
+    if (!isMobile()) return;
+    var vv = window.visualViewport;
+    // Pin body to visual viewport height so layout doesn't overflow under keyboard
+    document.body.style.height = vv.height + 'px';
+    // Fix button position: account for BOTH vertical AND horizontal viewport offset
+    // (iOS pans the layout viewport in both axes when keyboard opens)
     if (toggle) {
-      var offset = window.innerHeight - window.visualViewport.height;
-      toggle.style.bottom = (16 + offset) + 'px';
+      toggle.style.bottom = (16 + Math.max(0, window.innerHeight - vv.offsetTop - vv.height)) + 'px';
+      toggle.style.right  = (16 + Math.max(0, window.innerWidth  - vv.offsetLeft - vv.width))  + 'px';
     }
   }
+
+  // Auto-close sidebar whenever any input/textarea is focused (keyboard about to open)
+  document.addEventListener('focusin', function(e) {
+    if (!isMobile()) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      sidebar.classList.remove('open');
+    }
+  });
+
   window.visualViewport.addEventListener('resize', applyHeight);
   window.visualViewport.addEventListener('scroll', applyHeight);
-  window.addEventListener('resize', function() { isMobile = window.innerWidth <= 700; applyHeight(); });
+  window.addEventListener('resize', applyHeight);
   applyHeight();
 })();
 </script>
