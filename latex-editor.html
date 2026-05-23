@@ -1031,25 +1031,20 @@
 
     /* ── Responsive ── */
     @media (max-width: 700px) {
-      /* 100vh fallback first, 100dvh (shrinks with keyboard) overrides on modern browsers */
       body {
         flex-direction: column;
-        height: 100vh;
-        height: 100dvh;
+        height: 100vh; height: 100dvh;
         overflow: hidden;
         padding-bottom: env(safe-area-inset-bottom);
       }
 
       #sidebar-toggle { display: flex; bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-      /* Sidebar slides up from bottom as a sheet — height uses dvh so it shrinks with keyboard */
       .sidebar {
         position: fixed;
         bottom: 0; left: 0; right: 0;
-        width: 100%;
-        min-width: unset;
-        height: 50vh;
-        height: 50dvh;
+        width: 100%; min-width: unset;
+        height: 50vh; height: 50dvh;
         border-right: none;
         border-top: 2px solid #e5e7eb;
         z-index: 999;
@@ -1059,27 +1054,59 @@
       }
       .sidebar.open { transform: translateY(0); }
 
-      .main { flex: 1; min-height: 0; overflow: hidden; }
+      .main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 
-      .output-area { padding: 16px 12px; }
-      .paper-doc-area { padding: 16px 8px; }
-      .paper-doc { padding: 24px 14px 32px; }
+      /* ── Output area: normal vs keyboard-open ── */
+      .output-area {
+        flex: 1; min-height: 60px;
+        padding: 10px 12px;
+        transition: flex 0.2s ease, min-height 0.2s ease;
+        overflow-y: auto;
+      }
+      /* When keyboard open, collapse output to a small peek strip */
+      body.keyboard-open .output-area {
+        flex: 0 0 72px;
+        min-height: 72px;
+        overflow-y: auto;
+      }
+      body.keyboard-open .placeholder-text { display: none; }
 
-      .input-area { padding: 8px 10px 10px; }
+      /* ── Compress top toolbar rows ── */
+      .mode-tabs { flex-shrink: 0; }
+      .mode-tab { padding: 6px 10px; font-size: 11px; }
 
-      /* 16px minimum everywhere — prevents iOS from zooming on input focus */
-      .latex-input { font-size: 16px !important; min-height: 56px; max-height: 120px; }
+      .align-toolbar {
+        padding: 3px 6px; gap: 2px; flex-shrink: 0;
+        overflow-x: auto; flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+      .align-toolbar-label { display: none; }
+      .align-btn { width: 22px; height: 20px; font-size: 11px; }
+      .paper-dl-btn { font-size: 9px; padding: 2px 5px; }
+
+      .color-toolbar {
+        padding: 3px 6px; gap: 3px; flex-shrink: 0;
+        overflow-x: auto; flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+      .color-toolbar-label { display: none; }
+      .color-swatch { width: 18px; height: 18px; flex-shrink: 0; }
+      .color-apply-btn { font-size: 10px; padding: 2px 6px; white-space: nowrap; }
+
+      .input-area { padding: 6px 10px 8px; flex-shrink: 0; }
+      .input-label { display: none; }
+      .input-hint { display: none; }
+
+      /* Prevent iOS zoom on focus */
+      .latex-input { font-size: 16px !important; min-height: 52px; max-height: 110px; }
       input, textarea, select { font-size: 16px !important; }
 
-      .toolbar { gap: 2px; padding: 4px 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
-      .align-sep { display: none; }
-      .mode-tabs { font-size: 12px; }
-
       .output-line .katex { font-size: 1.2em; }
-      .pb-text-body, .pb-abstract-body, .pb-env-content { font-size: 12px; }
+      .pb-text-body, .pb-abstract-body { font-size: 12px; }
       .pb-title-render { font-size: 20px; }
       .pb-section-num { font-size: 15px; }
       .placeholder-text { font-size: 14px; }
+      .align-sep { display: none; }
     }
 
     @media (min-width: 701px) and (max-width: 1024px) {
@@ -4782,13 +4809,12 @@ document.getElementById('sidebar').addEventListener('click', e => {
   function applyHeight() {
     if (!isMobile()) return;
     var vv = window.visualViewport;
-    // Pin body to visual viewport height so layout doesn't overflow under keyboard
     document.body.style.height = vv.height + 'px';
-    // Fix button position: account for BOTH vertical AND horizontal viewport offset
-    // (iOS pans the layout viewport in both axes when keyboard opens)
+    var kbHeight = window.innerHeight - vv.offsetTop - vv.height;
+    document.body.classList.toggle('keyboard-open', kbHeight > 150);
     if (toggle) {
-      toggle.style.bottom = (16 + Math.max(0, window.innerHeight - vv.offsetTop - vv.height)) + 'px';
-      toggle.style.right  = (16 + Math.max(0, window.innerWidth  - vv.offsetLeft - vv.width))  + 'px';
+      toggle.style.bottom = (16 + Math.max(0, kbHeight)) + 'px';
+      toggle.style.right  = (16 + Math.max(0, window.innerWidth - vv.offsetLeft - vv.width)) + 'px';
     }
   }
 
@@ -4803,6 +4829,12 @@ document.getElementById('sidebar').addEventListener('click', e => {
   window.visualViewport.addEventListener('resize', applyHeight);
   window.visualViewport.addEventListener('scroll', applyHeight);
   window.addEventListener('resize', applyHeight);
+
+  // Expose physical screen dimensions as CSS vars for adaptive sizing
+  document.documentElement.style.setProperty('--sw', window.screen.width + 'px');
+  document.documentElement.style.setProperty('--sh', window.screen.height + 'px');
+  document.documentElement.style.setProperty('--dpr', window.devicePixelRatio);
+
   applyHeight();
 })();
 </script>
