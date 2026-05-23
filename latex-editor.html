@@ -264,7 +264,8 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
       background: #ffffff;
       display: flex;
-      height: 100vh;
+      height: 100dvh;
+      height: 100vh; /* fallback */
       overflow: hidden;
       color: #1f2937;
     }
@@ -4764,6 +4765,19 @@ document.getElementById('sidebar').addEventListener('click', e => {
     document.getElementById('sidebar').classList.remove('open');
   }
 });
+
+// ── Virtual keyboard autofit ──────────────────────────────────────────────
+// When the on-screen keyboard opens it shrinks visualViewport but NOT 100vh,
+// causing the input area to be hidden under the keyboard.
+// Fix: pin body height to visualViewport.height so the layout always fits.
+(function () {
+  if (!window.visualViewport) return;
+  function applyHeight() {
+    document.body.style.height = window.visualViewport.height + 'px';
+  }
+  window.visualViewport.addEventListener('resize', applyHeight);
+  applyHeight();
+})();
 </script>
 </body>
 </html>
