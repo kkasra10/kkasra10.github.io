@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Instagram Timeline Video</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #161616;
+      --surface2: #1f1f1f;
+      --surface3: #2a2a2a;
+      --grad-a: #833ab4;
+      --grad-b: #e1306c;
+      --grad-c: #fd1d1d;
+      --text: #f5f5f5;
+      --text-sub: #a0a0a0;
+      --text-muted: #555;
+      --border: #2e2e2e;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b), var(--grad-c));
+      padding: 24px 20px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.3px; }
+    .header p { font-size: 0.8rem; opacity: 0.85; margin-top: 3px; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 700px; margin: 0 auto; padding: 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--grad-b);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── UPLOAD ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: var(--grad-b);
+      background: rgba(225,48,108,.06);
+    }
+    .drop-zone-icon {
+      font-size: 2.2rem;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .drop-zone p { color: var(--text-sub); font-size: 0.88rem; }
+    .drop-zone p span { color: var(--grad-b); font-weight: 600; }
+    .drop-zone small { color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px; }
+    input[type="file"] { display: none; }
+
+    /* ── PHOTO LIST ── */
+    .photo-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+
+    .photo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
+    .photo-thumb {
+      width: 54px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+      background: var(--surface3);
+    }
+
+    .photo-meta { flex: 1; min-width: 0; }
+    .photo-filename {
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .date-input {
+      width: 100%;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 5px 8px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .date-input:focus { outline: none; border-color: var(--grad-b); }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      font-size: 1.1rem;
+      line-height: 1;
+      transition: color .15s, background .15s;
+    }
+    .remove-btn:hover { color: #ff4757; background: rgba(255,71,87,.1); }
+
+    .photo-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: 8px;
+    }
+    .photo-count span { color: var(--grad-b); font-weight: 600; }
+
+    /* ── SETTINGS ── */
+    .settings-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 440px) { .settings-row { grid-template-columns: 1fr; } }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 6px;
+    }
+
+    .field select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+    }
+    .field select:focus { outline: none; border-color: var(--grad-b); }
+
+    .range-wrap { position: relative; }
+    .field input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface3);
+      outline: none;
+      cursor: pointer;
+    }
+    .field input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    }
+    .field input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      cursor: pointer;
+      border: none;
+    }
+    .range-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .range-label label { font-size: 0.72rem; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: .6px; }
+    .range-label .val { font-size: 0.82rem; font-weight: 700; color: var(--grad-b); }
+
+    .presets {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .preset {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .preset:hover, .preset.on {
+      border-color: var(--grad-b);
+      color: var(--grad-b);
+      background: rgba(225,48,108,.1);
+    }
+
+    /* ── PREVIEW ── */
+    .canvas-wrap {
+      background: #000;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 180px;
+      margin-bottom: 12px;
+    }
+    #cv {
+      display: block;
+      max-width: 100%;
+      max-height: 55vh;
+      width: auto;
+      height: auto;
+    }
+
+    /* scrubber */
+    .scrub-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    #scrub {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface3);
+      outline: none;
+      cursor: pointer;
+    }
+    #scrub::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--grad-b);
+      cursor: pointer;
+    }
+    #scrub::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--grad-b);
+      cursor: pointer;
+      border: none;
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    #cur-date { color: var(--text-sub); font-weight: 500; }
+
+    /* buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      min-width: 110px;
+      padding: 13px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s, box-shadow .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+    .btn-play {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-play:hover:not(:disabled) { border-color: var(--text-sub); }
+
+    .btn-rec {
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(225,48,108,.3);
+    }
+    .btn-rec:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(225,48,108,.45); }
+    .btn-rec.recording {
+      background: #ff4757;
+      box-shadow: 0 2px 10px rgba(255,71,87,.4);
+      animation: recPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes recPulse {
+      0%,100% { box-shadow: 0 2px 10px rgba(255,71,87,.4); }
+      50%      { box-shadow: 0 4px 20px rgba(255,71,87,.7); }
+    }
+
+    /* status toast */
+    .toast {
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      margin-top: 12px;
+      display: none;
+      line-height: 1.4;
+    }
+    .toast.info    { background: rgba(131,58,180,.2); color: #c77dff; border: 1px solid rgba(131,58,180,.3); }
+    .toast.success { background: rgba(0,200,83,.15); color: #00e676; border: 1px solid rgba(0,200,83,.25); }
+    .toast.error   { background: rgba(255,71,87,.15); color: #ff6b81; border: 1px solid rgba(255,71,87,.25); }
+
+    /* rec dot */
+    .dot {
+      width: 8px; height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      animation: blink .9s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Instagram Timeline Video</h1>
+  <p>Turn your posts into a real-time story, sped up</p>
+</div>
+
+<div class="container">
+
+  <!-- PHOTOS -->
+  <div class="card">
+    <div class="card-title">📸 Photos</div>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="drop-zone-icon">🖼️</span>
+      <p><span>Tap to choose photos</span> or drag &amp; drop</p>
+      <small>JPG · PNG · WebP · HEIC — dates auto-detected from EXIF</small>
+    </div>
+    <input type="file" id="fileIn" multiple accept="image/*">
+
+    <div class="photo-list" id="photoList"></div>
+    <div class="photo-count" id="photoCount" style="display:none">
+      <span id="countNum">0</span> photos · estimated video: <span id="estDur">—</span>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="card">
+    <div class="card-title">⚙️ Settings</div>
+
+    <div class="range-label">
+      <label>Speed</label>
+      <span class="val" id="speedLabel">7 days / sec</span>
+    </div>
+    <input type="range" id="speedSlider" min="0.1" max="730" step="0.1" value="7" style="width:100%;margin-bottom:8px">
+    <div class="presets" id="presets">
+      <button class="preset" data-v="1">1 day/s</button>
+      <button class="preset on" data-v="7">1 wk/s</button>
+      <button class="preset" data-v="30">1 mo/s</button>
+      <button class="preset" data-v="182.5">6 mo/s</button>
+      <button class="preset" data-v="365">1 yr/s</button>
+    </div>
+
+    <div class="settings-row" style="margin-top:16px">
+      <div class="field">
+        <label>Aspect Ratio</label>
+        <select id="aspect">
+          <option value="9:16">9:16 — Portrait (phone)</option>
+          <option value="4:5">4:5 — Instagram portrait</option>
+          <option value="1:1">1:1 — Square</option>
+          <option value="16:9">16:9 — Landscape</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Transition</label>
+        <select id="transType">
+          <option value="fade">Fade</option>
+          <option value="wipe">Wipe</option>
+          <option value="zoom">Zoom</option>
+          <option value="cut">Hard Cut</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="field">
+        <label>Quality</label>
+        <select id="quality">
+          <option value="1080">High — 1080p</option>
+          <option value="720" selected>Medium — 720p</option>
+          <option value="480">Low — 480p</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date Overlay</label>
+        <select id="dateOverlay">
+          <option value="1">Show date</option>
+          <option value="0">Hide</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="range-label" style="margin-top:4px">
+      <label>Transition Duration</label>
+      <span class="val" id="transDurLabel">0.8 s</span>
+    </div>
+    <input type="range" id="transDur" min="0.1" max="3" step="0.05" value="0.8" style="width:100%">
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="card">
+    <div class="card-title">▶ Preview &amp; Export</div>
+
+    <div class="canvas-wrap">
+      <canvas id="cv"></canvas>
+    </div>
+
+    <div class="scrub-row">
+      <input type="range" id="scrub" min="0" max="1000" step="1" value="0">
+    </div>
+    <div class="time-row">
+      <span id="curTime">0:00</span>
+      <span id="cur-date">—</span>
+      <span id="totTime">0:00</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-play" id="btnPlay">▶&nbsp; Preview</button>
+      <button class="btn btn-rec"  id="btnRec">⏺&nbsp; Record Video</button>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+</div>
+
+<script>
+/* ================================================================
+   STATE
+================================================================ */
+const S = {
+  photos: [],          // {id, src, img, date, name}
+  playing: false,
+  recording: false,
+  pausedAt: 0,         // seconds
+  raf: null,
+  mr: null,            // MediaRecorder
+  chunks: [],
+};
+
+/* ================================================================
+   DOM
+================================================================ */
+const dropZone   = document.getElementById('dropZone');
+const fileIn     = document.getElementById('fileIn');
+const photoList  = document.getElementById('photoList');
+const photoCount = document.getElementById('photoCount');
+const countNum   = document.getElementById('countNum');
+const estDur     = document.getElementById('estDur');
+
+const speedSlider   = document.getElementById('speedSlider');
+const speedLabel    = document.getElementById('speedLabel');
+const presetsEl     = document.getElementById('presets');
+const aspectSel     = document.getElementById('aspect');
+const transTypeSel  = document.getElementById('transType');
+const qualitySel    = document.getElementById('quality');
+const dateOverlaySel= document.getElementById('dateOverlay');
+const transDurSlider= document.getElementById('transDur');
+const transDurLabel = document.getElementById('transDurLabel');
+
+const cv      = document.getElementById('cv');
+const ctx     = cv.getContext('2d');
+const scrub   = document.getElementById('scrub');
+const curTimeEl = document.getElementById('curTime');
+const curDateEl = document.getElementById('cur-date');
+const totTimeEl = document.getElementById('totTime');
+const btnPlay   = document.getElementById('btnPlay');
+const btnRec    = document.getElementById('btnRec');
+const toast     = document.getElementById('toast');
+
+/* ================================================================
+   UPLOAD
+================================================================ */
+dropZone.addEventListener('click', () => fileIn.click());
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  addFiles([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
+});
+fileIn.addEventListener('change', () => { addFiles([...fileIn.files]); fileIn.value = ''; });
+
+function addFiles(files) {
+  files.forEach(file => {
+    const id = performance.now() + Math.random();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const src = ev.target.result;
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        readExifDate(file).then(date => {
+          S.photos.push({ id, src, img, date: date || new Date(), name: file.name });
+          S.photos.sort((a,b) => a.date - b.date);
+          renderList();
+          refreshCanvas();
+        });
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ================================================================
+   EXIF DATE EXTRACTION
+================================================================ */
+async function readExifDate(file) {
+  if (!file.type.includes('jpeg') && !file.type.includes('jpg')) return null;
+  try {
+    const buf = await file.arrayBuffer();
+    const dv  = new DataView(buf);
+    if (dv.getUint16(0, false) !== 0xFFD8) return null;
+
+    let off = 2;
+    while (off < dv.byteLength - 4) {
+      const marker = dv.getUint16(off, false);
+      if (marker === 0xFFDA) break;
+      const segLen = dv.getUint16(off + 2, false);
+
+      if (marker === 0xFFE1 && segLen > 6) {
+        const hdr = String.fromCharCode(
+          dv.getUint8(off+4), dv.getUint8(off+5),
+          dv.getUint8(off+6), dv.getUint8(off+7)
+        );
+        if (hdr === 'Exif') {
+          const slice = new Uint8Array(buf, off + 4, Math.min(segLen - 2, 3000));
+          const txt = new TextDecoder('ascii', {fatal:false}).decode(slice);
+          const m = txt.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+          if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+        }
+      }
+      off += 2 + segLen;
+    }
+  } catch {}
+  return null;
+}
+
+/* ================================================================
+   PHOTO LIST RENDER
+================================================================ */
+function renderList() {
+  photoList.innerHTML = '';
+
+  S.photos.forEach(ph => {
+    const el = document.createElement('div');
+    el.className = 'photo-item';
+
+    const dtVal = toDatetimeLocal(ph.date);
+
+    el.innerHTML = `
+      <img class="photo-thumb" src="${ph.src}" loading="lazy">
+      <div class="photo-meta">
+        <div class="photo-filename">${ph.name}</div>
+        <input class="date-input" type="datetime-local" value="${dtVal}" data-id="${ph.id}">
+      </div>
+      <button class="remove-btn" data-id="${ph.id}" title="Remove">✕</button>
+    `;
+    photoList.appendChild(el);
+  });
+
+  photoList.querySelectorAll('.date-input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const id = +e.target.dataset.id;
+      const ph = S.photos.find(p => p.id === id);
+      if (ph) {
+        ph.date = new Date(e.target.value);
+        S.photos.sort((a,b) => a.date - b.date);
+        renderList();
+        refreshCanvas();
+      }
+    });
+  });
+
+  photoList.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = +e.currentTarget.dataset.id;
+      S.photos = S.photos.filter(p => p.id !== id);
+      renderList();
+      refreshCanvas();
+    });
+  });
+
+  // count + estimate
+  const n = S.photos.length;
+  photoCount.style.display = n ? 'block' : 'none';
+  countNum.textContent = n;
+
+  const tl = timeline();
+  estDur.textContent = tl ? fmtTime(tl.totalSec) : '—';
+  totTimeEl.textContent = tl ? fmtTime(tl.totalSec) : '0:00';
+}
+
+function toDatetimeLocal(d) {
+  if (!(d instanceof Date) || isNaN(d)) return '';
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ================================================================
+   CANVAS SETUP
+================================================================ */
+function canvasDims() {
+  const q  = +qualitySel.value;
+  const [wr, hr] = aspectSel.value.split(':').map(Number);
+  const ar = wr / hr;
+  if (ar >= 1) return { w: Math.round(q * ar), h: q };
+  return { w: q, h: Math.round(q / ar) };
+}
+
+function refreshCanvas() {
+  stopAnim();
+  const {w, h} = canvasDims();
+  cv.width = w; cv.height = h;
+
+  if (!S.photos.length) { drawEmpty(); return; }
+  drawFrame(S.pausedAt);
+  renderList(); // update estimate
+}
+
+function drawEmpty() {
+  const {w, h} = {w: cv.width, h: cv.height};
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#2a2a2a';
+  ctx.font = `${Math.round(h*.038)}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Add photos to get started', w/2, h/2);
+}
+
+/* ================================================================
+   TIMELINE MATH
+================================================================ */
+function timeline() {
+  const ps = S.photos.filter(p => p.date && !isNaN(p.date));
+  if (ps.length < 2) return null;
+  const sorted   = [...ps].sort((a,b) => a.date - b.date);
+  const startMs  = sorted[0].date.getTime();
+  const endMs    = sorted[sorted.length-1].date.getTime();
+  const spanMs   = endMs - startMs;
+  if (spanMs <= 0) return null;
+  const dps      = +speedSlider.value;          // days per second of video
+  const msPerSec = dps * 86_400_000;
+  const totalSec = spanMs / msPerSec;
+  return { sorted, startMs, endMs, spanMs, msPerSec, totalSec };
+}
+
+/* ================================================================
+   FRAME RENDERING
+================================================================ */
+function drawFrame(sec) {
+  const tl = timeline();
+  if (!tl) { if (S.photos.length) drawPhotoPlain(S.photos[0].img); return; }
+
+  const W = cv.width, H = cv.height;
+  const curMs    = tl.startMs + sec * tl.msPerSec;
+  const progress = Math.min(sec / tl.totalSec, 1);
+
+  // Which photo index are we at?
+  let curIdx = 0;
+  for (let i = 0; i < tl.sorted.length; i++) {
+    if (tl.sorted[i].date.getTime() <= curMs) curIdx = i;
+    else break;
+  }
+
+  const nextIdx = Math.min(curIdx + 1, tl.sorted.length - 1);
+  const curPh   = tl.sorted[curIdx];
+  const nextPh  = tl.sorted[nextIdx];
+
+  const tDur = +transDurSlider.value;
+  let trans = 0;
+  if (curIdx < tl.sorted.length - 1) {
+    const nextMs = nextPh.date.getTime();
+    const secsLeft = (nextMs - curMs) / tl.msPerSec;
+    if (secsLeft < tDur) trans = easeIO(1 - secsLeft / tDur);
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (trans > 0 && curIdx !== nextIdx) {
+    applyTransition(curPh.img, nextPh.img, trans, W, H);
+  } else {
+    fitImg(curPh.img, W, H, 1, 0, 0);
+  }
+
+  if (+dateOverlaySel.value) drawDateBadge(new Date(curMs), W, H);
+  drawProgressBar(progress, W, H);
+
+  // update UI
+  const pct = tl.totalSec > 0 ? (sec / tl.totalSec) * 1000 : 0;
+  scrub.value = Math.min(pct, 1000);
+  curTimeEl.textContent = fmtTime(sec);
+  curDateEl.textContent = fmtDate(new Date(curMs));
+}
+
+/* ── fit image cover ── */
+function fitImg(img, W, H, alpha, ox, oy) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const ia = img.width / img.height;
+  const ca = W / H;
+  let dw, dh, dx, dy;
+  if (ia > ca) { dh = H; dw = dh * ia; dx = (W - dw) / 2; dy = 0; }
+  else         { dw = W; dh = dw / ia; dx = 0; dy = (H - dh) / 2; }
+  ctx.drawImage(img, ox + dx, oy + dy, dw, dh);
+  ctx.restore();
+}
+
+function drawPhotoPlain(img) {
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  fitImg(img, W, H, 1, 0, 0);
+}
+
+/* ── transitions ── */
+function applyTransition(imgA, imgB, t, W, H) {
+  const type = transTypeSel.value;
+  switch (type) {
+    case 'fade':
+      fitImg(imgA, W, H, 1 - t, 0, 0);
+      fitImg(imgB, W, H, t, 0, 0);
+      break;
+
+    case 'wipe': {
+      const split = Math.round(W * t);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, W - split, H); ctx.clip();
+      fitImg(imgA, W, H, 1, 0, 0);
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath(); ctx.rect(W - split, 0, split, H); ctx.clip();
+      fitImg(imgB, W, H, 1, 0, 0);
+      ctx.restore();
+      // divider
+      ctx.fillStyle = 'rgba(255,255,255,.4)';
+      ctx.fillRect(W - split - 1, 0, 2, H);
+      break;
+    }
+
+    case 'zoom':
+      fitImg(imgA, W, H, 1 - t, 0, 0);
+      ctx.save();
+      const sc = 0.85 + 0.15 * t;
+      ctx.translate(W/2, H/2);
+      ctx.scale(sc, sc);
+      ctx.translate(-W/2, -H/2);
+      fitImg(imgB, W, H, t, 0, 0);
+      ctx.restore();
+      break;
+
+    case 'cut':
+      fitImg(t < 0.5 ? imgA : imgB, W, H, 1, 0, 0);
+      break;
+  }
+}
+
+/* ── overlays ── */
+function drawDateBadge(date, W, H) {
+  const fs  = Math.max(12, Math.round(H * 0.038));
+  const pad = Math.round(fs * 0.6);
+  const txt = fmtDate(date);
+  ctx.save();
+  ctx.font = `600 ${fs}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+  const tw  = ctx.measureText(txt).width;
+  const bw  = tw + pad * 2;
+  const bh  = fs + pad * 1.4;
+  const bx  = W - bw - pad;
+  const by  = pad;
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  rrect(ctx, bx, by, bw, bh, bh / 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.textAlign    = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(txt, W - pad * 1.4, by + bh / 2);
+  ctx.restore();
+}
+
+function drawProgressBar(prog, W, H) {
+  const bh = Math.max(3, Math.round(H * 0.005));
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.fillRect(0, H - bh, W, bh);
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, '#833ab4');
+  grad.addColorStop(1, '#e1306c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, H - bh, W * Math.min(prog, 1), bh);
+}
+
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+/* ── helpers ── */
+function easeIO(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
+
+function fmtTime(sec) {
+  sec = Math.max(0, sec);
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+/* ================================================================
+   ANIMATION LOOP
+================================================================ */
+function startAnim() {
+  if (S.photos.length < 2) { showToast('Add at least 2 photos with dates first.', 'error'); return; }
+  const tl = timeline();
+  if (!tl) { showToast('Make sure photos have different dates.', 'error'); return; }
+
+  S.playing = true;
+  btnPlay.innerHTML = '⏸&nbsp; Pause';
+
+  const wallStart = performance.now() - S.pausedAt * 1000;
+
+  function tick(now) {
+    if (!S.playing) return;
+    const elapsed = (now - wallStart) / 1000;
+    if (elapsed >= tl.totalSec) {
+      drawFrame(tl.totalSec);
+      S.pausedAt = 0;
+      stopAnim();
+      return;
+    }
+    drawFrame(elapsed);
+    S.raf = requestAnimationFrame(tick);
+  }
+  S.raf = requestAnimationFrame(tick);
+}
+
+function stopAnim() {
+  if (S.raf) { cancelAnimationFrame(S.raf); S.raf = null; }
+  if (S.playing) {
+    const tl = timeline();
+    S.pausedAt = tl ? (scrub.value / 1000) * tl.totalSec : 0;
+    S.playing  = false;
+    btnPlay.innerHTML = '▶&nbsp; Preview';
+  }
+}
+
+/* ================================================================
+   SCRUBBER
+================================================================ */
+scrub.addEventListener('input', () => {
+  const tl = timeline();
+  if (!tl) return;
+  const sec = (scrub.value / 1000) * tl.totalSec;
+  S.pausedAt = sec;
+  if (!S.playing) drawFrame(sec);
+});
+
+/* ================================================================
+   RECORDING
+================================================================ */
+async function startRecording() {
+  if (S.photos.length < 2) { showToast('Add at least 2 photos with dates first.', 'error'); return; }
+  const tl = timeline();
+  if (!tl) { showToast('Make sure photos have different dates.', 'error'); return; }
+
+  stopAnim();
+  S.pausedAt = 0;
+
+  if (!window.MediaRecorder) {
+    showToast('Video recording not supported in this browser. Use Chrome or Firefox.', 'error');
+    return;
+  }
+
+  const mime = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4']
+    .find(t => MediaRecorder.isTypeSupported(t));
+  if (!mime) {
+    showToast('No supported video format found. Try Chrome or Edge.', 'error');
+    return;
+  }
+
+  S.chunks    = [];
+  S.recording = true;
+  btnRec.classList.add('recording');
+  btnRec.innerHTML = '<span class="dot"></span> Stop Recording';
+  btnPlay.disabled = true;
+
+  const bps = (+qualitySel.value === 1080 ? 8 : +qualitySel.value === 720 ? 4 : 2) * 1_000_000;
+  const stream = cv.captureStream(30);
+  S.mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps });
+
+  S.mr.ondataavailable = e => { if (e.data.size > 0) S.chunks.push(e.data); };
+  S.mr.onstop = () => {
+    const ext  = mime.includes('mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(S.chunks, { type: mime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `instagram-timeline.${ext}`; a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Video saved! (${fmtTime(tl.totalSec)} · ${ext.toUpperCase()})`, 'success');
+    S.recording = false;
+    btnRec.classList.remove('recording');
+    btnRec.innerHTML = '⏺&nbsp; Record Video';
+    btnPlay.disabled = false;
+  };
+
+  S.mr.start(100);
+  showToast(`Recording… ${fmtTime(tl.totalSec)} at ${speedSlider.value} days/sec`, 'info');
+
+  const wallStart = performance.now();
+  function recTick(now) {
+    if (!S.recording) return;
+    const elapsed = (now - wallStart) / 1000;
+    if (elapsed >= tl.totalSec) {
+      drawFrame(tl.totalSec);
+      S.mr.stop();
+      return;
+    }
+    drawFrame(elapsed);
+    S.raf = requestAnimationFrame(recTick);
+  }
+  S.raf = requestAnimationFrame(recTick);
+}
+
+function stopRecording() {
+  S.recording = false;
+  if (S.raf) { cancelAnimationFrame(S.raf); S.raf = null; }
+  if (S.mr && S.mr.state !== 'inactive') S.mr.stop();
+}
+
+/* ================================================================
+   BUTTON HANDLERS
+================================================================ */
+btnPlay.addEventListener('click', () => {
+  if (S.playing) stopAnim();
+  else startAnim();
+});
+
+btnRec.addEventListener('click', () => {
+  if (S.recording) stopRecording();
+  else startRecording();
+});
+
+/* ================================================================
+   SETTINGS HANDLERS
+================================================================ */
+speedSlider.addEventListener('input', () => {
+  const v = +speedSlider.value;
+  speedLabel.textContent = formatSpeed(v);
+  document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', +b.dataset.v === v));
+  const tl = timeline();
+  totTimeEl.textContent = tl ? fmtTime(tl.totalSec) : '0:00';
+  estDur.textContent    = tl ? fmtTime(tl.totalSec) : '—';
+  if (!S.playing) drawFrame(S.pausedAt);
+});
+
+presetsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.preset');
+  if (!btn) return;
+  speedSlider.value = btn.dataset.v;
+  speedSlider.dispatchEvent(new Event('input'));
+});
+
+transDurSlider.addEventListener('input', () => {
+  transDurLabel.textContent = `${(+transDurSlider.value).toFixed(2)} s`;
+});
+
+[aspectSel, transTypeSel, qualitySel, dateOverlaySel].forEach(el => {
+  el.addEventListener('change', () => refreshCanvas());
+});
+
+function formatSpeed(v) {
+  if (v < 1)     return `${(1/v).toFixed(1)} sec/day`;
+  if (v === 1)   return '1 day / sec';
+  if (v < 7)     return `${v.toFixed(1)} days / sec`;
+  if (v === 7)   return '1 week / sec';
+  if (v < 30)    return `${v.toFixed(0)} days / sec`;
+  if (v < 31)    return '1 month / sec';
+  if (v < 182)   return `${(v/30).toFixed(1)} months / sec`;
+  if (v < 184)   return '6 months / sec';
+  if (v < 366)   return `${(v/30).toFixed(0)} months / sec`;
+  return `${(v/365).toFixed(1)} years / sec`;
+}
+
+/* ================================================================
+   TOAST
+================================================================ */
+let toastTimer;
+function showToast(msg, type) {
+  toast.textContent  = msg;
+  toast.className    = `toast ${type}`;
+  toast.style.display = 'block';
+  clearTimeout(toastTimer);
+  if (type !== 'info') toastTimer = setTimeout(() => { toast.style.display='none'; }, 5000);
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+refreshCanvas();
+</script>
+</body>
+</html>
