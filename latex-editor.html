@@ -1088,6 +1088,40 @@
 
     .color-apply-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
 
+    /* ── Templates panel ── */
+    .templates-wrap { position: relative; }
+    .templates-btn {
+      padding: 3px 9px; font-size: 10.5px; font-weight: 600;
+      border: 1.5px solid #e5e7eb; border-radius: 6px;
+      background: #fff; color: #374151; cursor: pointer;
+      transition: background 0.1s, border-color 0.1s; white-space: nowrap;
+    }
+    .templates-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .templates-panel {
+      position: absolute; bottom: calc(100% + 6px); left: 0;
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 12px;
+      z-index: 300; width: 320px; display: grid;
+      grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .templates-panel.hidden { display: none; }
+    .tpl-card {
+      border: 1.5px solid #e5e7eb; border-radius: 7px;
+      padding: 7px 9px; cursor: pointer; background: #fafafa;
+      transition: background 0.1s, border-color 0.1s;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .tpl-card:hover { background: #ebf0fd; border-color: #c4d1f9; }
+    .tpl-name { font-size: 10.5px; font-weight: 600; color: #374151; }
+    .tpl-preview { font-size: 9px; font-family: 'SF Mono','Fira Code',monospace; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.dark .templates-btn { background: #1f2937; border-color: #374151; color: #d1d5db; }
+    body.dark .templates-btn:hover { background: #374151; }
+    body.dark .templates-panel { background: #1f2937; border-color: #374151; }
+    body.dark .tpl-card { background: #111827; border-color: #374151; }
+    body.dark .tpl-card:hover { background: #1e3a5f; border-color: #2d4a7a; }
+    body.dark .tpl-name { color: #d1d5db; }
+    body.dark .tpl-preview { color: #4b5563; }
+
     .color-preview-dot {
       width: 14px;
       height: 14px;
@@ -1298,6 +1332,10 @@
         </div>
       </div>
       <button class="color-apply-btn" id="colorApplyBtn">Wrap selection</button>
+      <div class="templates-wrap">
+        <button class="templates-btn" id="templatesBtn">Templates</button>
+        <div class="templates-panel hidden" id="templatesPanel"></div>
+      </div>
     </div>
 
     <textarea
@@ -3897,6 +3935,7 @@ const waitForKatex = setInterval(() => {
   if (typeof katex !== 'undefined') {
     clearInterval(waitForKatex);
     buildSidebar();
+    buildTemplatesPanel();
     applySettings();
   }
 }, 30);
@@ -3939,6 +3978,54 @@ document.getElementById('latexInput').addEventListener('input', function() {
   clearTimeout(histTimer);
   const val = this.value;
   histTimer = setTimeout(() => { histPush(val); autoSaveInput(val); }, 600);
+});
+
+// ── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES = [
+  { name: 'Fraction',       src: '\\frac{a}{b}',                                              preview: '\\frac{a}{b}' },
+  { name: 'Integral',       src: '\\int_{0}^{\\infty} f(x)\\,dx',                             preview: '\\int_0^\\infty f(x)\\,dx' },
+  { name: 'Sum',            src: '\\sum_{n=1}^{\\infty} a_n',                                 preview: '\\sum_{n=1}^\\infty a_n' },
+  { name: 'Limit',          src: '\\lim_{x \\to 0} \\frac{\\sin x}{x}',                      preview: '\\lim_{x\\to 0}\\frac{\\sin x}{x}' },
+  { name: 'Matrix 2×2',     src: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}',          preview: '\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}' },
+  { name: 'System',         src: '\\begin{cases} f(x) & \\text{if } x > 0 \\\\ g(x) & \\text{if } x \\leq 0 \\end{cases}', preview: '\\begin{cases}f(x)&x>0\\\\g(x)&x\\leq0\\end{cases}' },
+  { name: 'Piecewise',      src: '|x| = \\begin{cases} x & x \\geq 0 \\\\ -x & x < 0 \\end{cases}', preview: '|x|=\\begin{cases}x&x\\ge0\\\\-x&x<0\\end{cases}' },
+  { name: 'Aligned eqs',    src: '\\begin{aligned} f(x) &= x^2 + 1 \\\\ g(x) &= 2x - 3 \\end{aligned}', preview: '\\begin{aligned}f(x)&=x^2+1\\\\g(x)&=2x-3\\end{aligned}' },
+];
+
+function buildTemplatesPanel() {
+  const panel = document.getElementById('templatesPanel');
+  TEMPLATES.forEach(tpl => {
+    const card = document.createElement('div');
+    card.className = 'tpl-card';
+    card.innerHTML = '<div class="tpl-name">' + tpl.name + '</div><div class="tpl-preview">' + tpl.preview.replace(/</g,'&lt;') + '</div>';
+    card.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const ta = document.getElementById('latexInput');
+      const val = ta.value;
+      const start = ta.selectionStart;
+      const sep = (val.length > 0 && start === val.length) ? '\n' : '';
+      ta.value = val.slice(0, start) + sep + tpl.src + val.slice(ta.selectionEnd);
+      const pos = start + sep.length + tpl.src.length;
+      ta.setSelectionRange(pos, pos);
+      ta.focus();
+      render();
+      histPush(ta.value);
+      autoSaveInput(ta.value);
+      document.getElementById('templatesPanel').classList.add('hidden');
+    });
+    panel.appendChild(card);
+  });
+}
+
+document.getElementById('templatesBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('templatesPanel').classList.toggle('hidden');
+});
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('templatesPanel');
+  if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target.id !== 'templatesBtn') {
+    panel.classList.add('hidden');
+  }
 });
 
 // ── Color toolbar ────────────────────────────────────────────────────────────
