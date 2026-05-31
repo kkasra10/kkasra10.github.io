@@ -5695,7 +5695,7 @@ document.getElementById('sidebar').addEventListener('click', e => {
   // Auto-close sidebar whenever any input/textarea is focused (keyboard about to open)
   document.addEventListener('focusin', function(e) {
     if (!isMobile()) return;
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && !sidebar.contains(e.target)) {
       sidebar.classList.remove('open');
     }
   });
