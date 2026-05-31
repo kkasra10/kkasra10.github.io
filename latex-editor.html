@@ -1481,6 +1481,13 @@
     <button class="align-btn" id="undoBtn" title="Undo" disabled>&#8630;</button>
     <button class="align-btn" id="redoBtn" title="Redo" disabled>&#8631;</button>
     <div class="align-sep"></div>
+    <div class="spacing-slider-wrap" style="gap:3px;">
+      <span class="spacing-slider-label" title="Per-line gap — place cursor on a line or select lines, then adjust">&#8645; line</span>
+      <button class="align-btn" id="lineGapDown" title="Decrease line gap by 8px">&#8722;</button>
+      <span id="lineGapVal" style="font-size:10px;color:#6b7280;min-width:24px;text-align:center;user-select:none;">0</span>
+      <button class="align-btn" id="lineGapUp" title="Increase line gap by 8px">&#43;</button>
+    </div>
+    <div class="align-sep"></div>
     <div class="spacing-slider-wrap">
       <span class="spacing-slider-label">&#8597;</span>
       <input type="range" class="spacing-slider" id="spacingSlider" min="0" max="60" step="1" value="12">
@@ -4066,6 +4073,19 @@ function renderLatex(src) {
   });
 }
 
+// Parse per-line directives from a raw line string.
+// Directives: %<left> %<center> %<right> %<gap:N>
+// Returns { clean, align, gap }
+function parseLineDirectives(line) {
+  let align = null, gap = null;
+  const clean = line.replace(/%<([^>]+)>/g, (_, d) => {
+    if (d === 'left' || d === 'center' || d === 'right') { align = d; }
+    else if (d.startsWith('gap:')) { gap = parseInt(d.slice(4), 10) || 0; }
+    return '';
+  }).trim();
+  return { clean, align, gap };
+}
+
 function render() {
   const input  = document.getElementById('latexInput').value;
   const output = document.getElementById('output');
@@ -4076,16 +4096,18 @@ function render() {
   const lines = input.split('\n');
   output.innerHTML = '';
   lines.forEach(line => {
+    const { clean, align, gap } = parseLineDirectives(line);
+    const effectiveAlign = align || halignState;
     const div = document.createElement('div');
-    div.className = 'output-line' + (halignState !== 'center' ? ' halign-' + halignState : '');
-    if (!line.trim()) {
-      div.style.height = '20px';
-    } else if (line.includes('||')) {
-      // Left || Right split: render left-aligned and right-aligned chunks
-      const idx = line.indexOf('||');
-      const left  = line.slice(0, idx).trim();
-      const right = line.slice(idx + 2).trim();
-      div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%;';
+    div.className = 'output-line' + (effectiveAlign !== 'center' ? ' halign-' + effectiveAlign : '');
+    if (gap) div.style.marginTop = gap + 'px';
+    if (!clean) {
+      div.style.height = (div.style.marginTop ? '0' : '20px');
+    } else if (clean.includes('||')) {
+      const idx = clean.indexOf('||');
+      const left  = clean.slice(0, idx).trim();
+      const right = clean.slice(idx + 2).trim();
+      div.style.cssText = (gap ? 'margin-top:'+gap+'px;' : '') + 'display:flex; justify-content:space-between; align-items:center; width:100%;';
       const leftEl  = document.createElement('div');
       const rightEl = document.createElement('div');
       if (left)  leftEl.innerHTML  = renderLatex(left);
@@ -4093,7 +4115,7 @@ function render() {
       div.appendChild(leftEl);
       div.appendChild(rightEl);
     } else {
-      div.innerHTML = renderLatex(line);
+      div.innerHTML = renderLatex(clean);
     }
     output.appendChild(div);
   });
@@ -4427,12 +4449,70 @@ function setVAlign(val) {
   if (val !== 'middle') out.classList.add('valign-' + val);
 }
 
-document.getElementById('halignLeft')  .addEventListener('click', () => setHAlign('left'));
-document.getElementById('halignCenter').addEventListener('click', () => setHAlign('center'));
-document.getElementById('halignRight') .addEventListener('click', () => setHAlign('right'));
+// Per-line alignment: if textarea has a selection, apply directive to those lines.
+// Otherwise fall back to global setHAlign.
+function applyHAlignSmart(align) {
+  const ta = document.getElementById('latexInput');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  if (s === e) { setHAlign(align); return; }           // no selection → global
+  const val = ta.value;
+  const lineStart = val.lastIndexOf('\n', s - 1) + 1;
+  const lineEnd   = val.indexOf('\n', e - 1);
+  const end       = lineEnd === -1 ? val.length : lineEnd;
+  const block     = val.slice(lineStart, end);
+  const updated   = block.split('\n').map(line => {
+    let clean = line.replace(/%<(left|center|right)>/g, '').trimEnd();
+    return align === 'center' ? clean : clean + ' %<' + align + '>';
+  }).join('\n');
+  ta.value = val.slice(0, lineStart) + updated + val.slice(end);
+  ta.setSelectionRange(lineStart, lineStart + updated.length);
+  render(); histPush(ta.value); autoSaveInput(ta.value);
+  updateGapDisplay();
+}
+
+document.getElementById('halignLeft')  .addEventListener('click', () => applyHAlignSmart('left'));
+document.getElementById('halignCenter').addEventListener('click', () => applyHAlignSmart('center'));
+document.getElementById('halignRight') .addEventListener('click', () => applyHAlignSmart('right'));
 document.getElementById('valignTop')   .addEventListener('click', () => setVAlign('top'));
 document.getElementById('valignMiddle').addEventListener('click', () => setVAlign('middle'));
 document.getElementById('valignBottom').addEventListener('click', () => setVAlign('bottom'));
+
+// ── Per-line gap ──────────────────────────────────────────────────────────────
+function getCursorLineInfo() {
+  const ta = document.getElementById('latexInput');
+  const val = ta.value, pos = ta.selectionStart;
+  const start = val.lastIndexOf('\n', pos - 1) + 1;
+  const end   = (val.indexOf('\n', pos) + 1 || val.length + 1) - 1;
+  return { val, start, end, line: val.slice(start, end) };
+}
+
+function updateGapDisplay() {
+  const { line } = getCursorLineInfo();
+  const m = line.match(/%<gap:(\d+)>/);
+  document.getElementById('lineGapVal').textContent = m ? m[1] : '0';
+}
+
+function stepLineGap(delta) {
+  const ta = document.getElementById('latexInput');
+  const { val, start, end, line } = getCursorLineInfo();
+  const m    = line.match(/%<gap:(\d+)>/);
+  const prev = m ? parseInt(m[1], 10) : 0;
+  const next = Math.max(0, prev + delta);
+  let updated = line.replace(/%<gap:\d+>/g, '').trimEnd();
+  if (next > 0) updated += ' %<gap:' + next + '>';
+  ta.value = val.slice(0, start) + updated + val.slice(end);
+  ta.setSelectionRange(start + updated.length, start + updated.length);
+  render(); histPush(ta.value); autoSaveInput(ta.value);
+  updateGapDisplay();
+}
+
+document.getElementById('lineGapDown').addEventListener('click', () => stepLineGap(-8));
+document.getElementById('lineGapUp')  .addEventListener('click', () => stepLineGap(8));
+
+// Sync gap display when cursor moves
+document.getElementById('latexInput').addEventListener('click',   updateGapDisplay);
+document.getElementById('latexInput').addEventListener('keyup',   updateGapDisplay);
+document.getElementById('latexInput').addEventListener('selectionchange', updateGapDisplay);
 
 // ── BG controls ───────────────────────────────────────────────────────────────
 const animBgBtn     = document.getElementById('animBgBtn');
