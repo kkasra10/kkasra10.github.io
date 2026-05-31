@@ -646,10 +646,24 @@
     body.dark .csb { background: #1f2937; border-color: #2d4a8a; color: #93bbff; }
     body.dark .csb:hover { background: #1e3a6e; }
     body.dark .csb .katex { color: #93bbff; }
+    /* two-pane layout */
+    .calc-layout {
+      flex: 1; display: flex; flex-direction: row; overflow: hidden; min-height: 0;
+    }
+    /* left: scrollable function sidebar */
+    .calc-fns-col {
+      width: 33%; flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      border-right: 1.5px solid #e5e7eb; background: #f9fafb;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px; padding: 5px; align-content: start;
+    }
+    .calc-fns-col::-webkit-scrollbar { display: none; }
+    /* right: main number pad */
     .calc-grid {
       flex: 1; display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(11, 1fr);
+      grid-template-rows: repeat(7, 1fr);
       gap: 5px; padding: 8px; background: #f8fafc;
       overflow: hidden; min-height: 0;
     }
@@ -665,13 +679,17 @@
     }
     .cb:hover  { background: #f3f4f6; border-color: #d1d5db; }
     .cb:active { transform: scale(0.93); background: #e5e7eb; }
-    .cb.num  { font-size: 19px; background: #f9fafb; }
-    .cb.op   { font-size: 19px; }
-    .cb.fn   { font-size: 14px; }
-    .cb.deg  { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
-    .cb.eq   { background: #3b6ef5; border-color: #3b6ef5; color: #fff; font-size: 20px; font-weight: 700; box-shadow: 0 2px 8px rgba(59,110,245,0.25); }
-    .cb.eq:hover  { background: #2d5be0; }
-    .cb.clr  { background: #fff5f5; border-color: #fecaca; color: #dc2626; }
+    /* main pad: larger */
+    .calc-grid .cb.num { font-size: 19px; background: #f9fafb; }
+    .calc-grid .cb.op  { font-size: 19px; }
+    .calc-grid .cb.fn  { font-size: 13px; }
+    .calc-grid .cb.deg { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+    /* fn sidebar: smaller */
+    .calc-fns-col .cb { font-size: 11px; border-radius: 7px; box-shadow: none; }
+    .calc-fns-col .cb .katex { font-size: 0.85em !important; }
+    .cb.eq  { background: #3b6ef5; border-color: #3b6ef5; color: #fff; font-size: 20px; font-weight: 700; box-shadow: 0 2px 8px rgba(59,110,245,0.25); }
+    .cb.eq:hover { background: #2d5be0; }
+    .cb.clr { background: #fff5f5; border-color: #fecaca; color: #dc2626; }
     .cb.clr:hover { background: #fee2e2; }
     /* dark mode */
     body.dark #panelCalc { background: #111827; }
@@ -682,11 +700,12 @@
     body.dark .calc-history { background: #1a2332; border-bottom-color: #374151; }
     body.dark .calc-hist-item { color: #4b5563; }
     body.dark .calc-hist-item:hover { color: #9ca3af; }
+    body.dark .calc-fns-col { background: #1a2332; border-right-color: #374151; }
     body.dark .calc-grid { background: #111827; }
     body.dark .cb { background: #1f2937; border-color: #374151; color: #e5e7eb; box-shadow: none; }
     body.dark .cb .katex { color: inherit !important; }
     body.dark .cb:hover { background: #374151; }
-    body.dark .cb.num { background: #1a2332; color: #f9fafb; }
+    body.dark .calc-grid .cb.num { background: #1a2332; color: #f9fafb; }
     body.dark .cb.eq  { background: #3b6ef5; border-color: #3b6ef5; color: #fff; }
     body.dark .cb.clr { background: #2d1a1e; border-color: #4a2028; color: #f87171; }
     /* language selector */
@@ -1692,7 +1711,10 @@ exit 2 bottom 500"></textarea>
     </div>
     <div class="calc-history" id="calcHistory"></div>
     <div class="calc-sym-bar" id="calcSymBar"></div>
-    <div class="calc-grid" id="calcGrid"></div>
+    <div class="calc-layout" id="calcLayout">
+      <div class="calc-fns-col" id="calcFnsCol"></div>
+      <div class="calc-grid" id="calcGrid"></div>
+    </div>
   </div>
 
   <!-- Help modal -->
@@ -4884,57 +4906,58 @@ function loadMathJS() {
 let calcExprStr = '';
 let calcDegMode = true;
 
+// Left function sidebar — scientific extras
+const CALC_FN_BTNS = [
+  { lx:'\\sin',              cv:'sin(',  cls:'fn' },
+  { lx:'\\cos',              cv:'cos(',  cls:'fn' },
+  { lx:'\\tan',              cv:'tan(',  cls:'fn' },
+  { lx:'\\sin^{-1}',         cv:'asin(', cls:'fn' },
+  { lx:'\\cos^{-1}',         cv:'acos(', cls:'fn' },
+  { lx:'\\tan^{-1}',         cv:'atan(', cls:'fn' },
+  { lx:'\\ln',               cv:'ln(',   cls:'fn' },
+  { lx:'\\log_{10}',         cv:'log(',  cls:'fn' },
+  { lx:'\\log_2',            cv:'log2(', cls:'fn' },
+  { lx:'e^x',                cv:'exp(',  cls:'fn' },
+  { lx:'\\sqrt{x}',          cv:'sqrt(', cls:'fn' },
+  { lx:'\\sqrt[3]{x}',       cv:'cbrt(', cls:'fn' },
+  { lx:'|x|',                cv:'abs(',  cls:'fn' },
+  { lx:'\\sinh',             cv:'sinh(', cls:'fn' },
+  { lx:'\\cosh',             cv:'cosh(', cls:'fn' },
+  { lx:'\\tanh',             cv:'tanh(', cls:'fn' },
+  { lx:'\\cot',              cv:'cot(',  cls:'fn' },
+  { lx:'n!',                 cv:'!',     cls:'fn' },
+  { lx:'\\lfloor x\\rfloor', cv:'floor(',cls:'fn' },
+  { lx:'\\lceil x\\rceil',   cv:'ceil(', cls:'fn' },
+  { lx:'\\text{round}',      cv:'round(',cls:'fn' },
+];
+
+// Right main pad — everyday use
 const CALC_BTNS = [
-  // Row 1 – mode / constants / backspace
   { text:'DEG', ca:'deg', cls:'deg', id:'calcDegBtn' },
-  { lx:'\\pi',           cv:'pi',    cls:'fn' },
-  { lx:'e',              cv:'e',     cls:'fn' },
-  { text:'⌫',            ca:'back',  cls:'clr' },
-  // Row 2 – primary trig
-  { lx:'\\sin',          cv:'sin(',  cls:'fn' },
-  { lx:'\\cos',          cv:'cos(',  cls:'fn' },
-  { lx:'\\tan',          cv:'tan(',  cls:'fn' },
-  { lx:'(\\,)',          ca:'paren', cls:'fn' },
-  // Row 3 – inverse trig
-  { lx:'\\sin^{-1}',     cv:'asin(', cls:'fn' },
-  { lx:'\\cos^{-1}',     cv:'acos(', cls:'fn' },
-  { lx:'\\tan^{-1}',     cv:'atan(', cls:'fn' },
-  { lx:'x^n',            cv:'^',     cls:'fn' },
-  // Row 4 – logarithms
-  { lx:'\\ln',           cv:'ln(',   cls:'fn' },
-  { lx:'\\log_{10}',     cv:'log(',  cls:'fn' },
-  { lx:'\\log_2',        cv:'log2(', cls:'fn' },
-  { lx:'x^2',            cv:'^2',    cls:'fn' },
-  // Row 5 – exponentials / roots
-  { lx:'e^x',            cv:'exp(',  cls:'fn' },
-  { lx:'\\sqrt{x}',      cv:'sqrt(', cls:'fn' },
-  { lx:'\\sqrt[3]{x}',   cv:'cbrt(', cls:'fn' },
-  { lx:'|x|',            cv:'abs(',  cls:'fn' },
-  // Row 6 – hyperbolic
-  { lx:'\\sinh',         cv:'sinh(', cls:'fn' },
-  { lx:'\\cosh',         cv:'cosh(', cls:'fn' },
-  { lx:'\\tanh',         cv:'tanh(', cls:'fn' },
-  { lx:'\\cot',          cv:'cot(',  cls:'fn' },
-  // Row 7 – misc
-  { lx:'\\lfloor x\\rfloor', cv:'floor(', cls:'fn' },
-  { lx:'\\lceil x\\rceil',   cv:'ceil(',  cls:'fn' },
-  { lx:'\\text{round}',      cv:'round(', cls:'fn' },
-  { lx:'x\\!\\mod\\!y',      cv:'%',      cls:'fn' },
-  // Row 8 – AC / sign / factorial / div
-  { text:'AC',            ca:'clear', cls:'clr' },
-  { lx:'\\pm',           ca:'sign',  cls:'fn' },
-  { lx:'n!',             cv:'!',     cls:'fn' },
-  { lx:'\\div',          cv:'/',     cls:'op' },
-  // Rows 9–11 – numpad
+  { lx:'\\pi',     cv:'pi',   cls:'fn' },
+  { lx:'e',        cv:'e',    cls:'fn' },
+  { text:'⌫',      ca:'back', cls:'clr' },
+
+  { lx:'(\\,)',    ca:'paren',cls:'fn' },
+  { lx:'x^n',     cv:'^',    cls:'fn' },
+  { lx:'x^2',     cv:'^2',   cls:'fn' },
+  { lx:'\\pm',    ca:'sign', cls:'fn' },
+
+  { text:'AC',     ca:'clear',cls:'clr' },
+  { lx:'x^2',     cv:'^2',   cls:'fn' },
+  { lx:'x\\%',    cv:'%',    cls:'fn' },
+  { lx:'\\div',   cv:'/',    cls:'op' },
+
   { lx:'7', cv:'7', cls:'num' }, { lx:'8', cv:'8', cls:'num' },
   { lx:'9', cv:'9', cls:'num' }, { lx:'\\times', cv:'*', cls:'op' },
   { lx:'4', cv:'4', cls:'num' }, { lx:'5', cv:'5', cls:'num' },
-  { lx:'6', cv:'6', cls:'num' }, { lx:'-',        cv:'-', cls:'op' },
+  { lx:'6', cv:'6', cls:'num' }, { lx:'-', cv:'-', cls:'op' },
   { lx:'1', cv:'1', cls:'num' }, { lx:'2', cv:'2', cls:'num' },
-  { lx:'3', cv:'3', cls:'num' }, { lx:'+',        cv:'+', cls:'op' },
+  { lx:'3', cv:'3', cls:'num' }, { lx:'+', cv:'+', cls:'op' },
+
   { lx:'0', cv:'0', cls:'num', span:2 },
-  { lx:'.',  cv:'.', cls:'num' },
-  { lx:'=',  ca:'eval', cls:'eq' },
+  { lx:'.', cv:'.', cls:'num' },
+  { lx:'=', ca:'eval', cls:'eq' },
 ];
 
 const CALC_SYM_BTNS = [
@@ -5014,25 +5037,25 @@ function buildCalcSymBar() {
   });
 }
 
+function makeCalcBtn(def) {
+  const btn = document.createElement('button');
+  btn.className = 'cb ' + def.cls;
+  if (def.id)   btn.id = def.id;
+  if (def.cv !== undefined) btn.dataset.cv = def.cv;
+  if (def.ca)   btn.dataset.ca = def.ca;
+  if (def.span) btn.style.gridColumn = 'span ' + def.span;
+  if (def.lx && typeof katex !== 'undefined') {
+    try { btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false, displayMode:false }); }
+    catch(_) { btn.textContent = def.text || def.lx; }
+  } else { btn.textContent = def.text || def.lx || ''; }
+  return btn;
+}
+
 function buildCalcGrid() {
   const grid = document.getElementById('calcGrid');
-  grid.innerHTML = '';
-  CALC_BTNS.forEach(def => {
-    const btn = document.createElement('button');
-    btn.className = 'cb ' + def.cls;
-    if (def.id)   btn.id = def.id;
-    if (def.cv !== undefined) btn.dataset.cv = def.cv;
-    if (def.ca)   btn.dataset.ca = def.ca;
-    if (def.span) btn.style.gridColumn = 'span ' + def.span;
-    if (def.lx && typeof katex !== 'undefined') {
-      try {
-        btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false, displayMode:false });
-      } catch(_) { btn.textContent = def.text || def.lx; }
-    } else {
-      btn.textContent = def.text || def.lx || '';
-    }
-    grid.appendChild(btn);
-  });
+  const fns  = document.getElementById('calcFnsCol');
+  if (grid) { grid.innerHTML = ''; CALC_BTNS.forEach(d => grid.appendChild(makeCalcBtn(d))); }
+  if (fns)  { fns.innerHTML  = ''; CALC_FN_BTNS.forEach(d => fns.appendChild(makeCalcBtn(d))); }
 }
 
 function calcExtraScope() {
@@ -5106,7 +5129,7 @@ function openParenCount() {
 }
 
 // Single delegated listener on the grid
-document.getElementById('calcGrid').addEventListener('click', async e => {
+document.getElementById('calcLayout').addEventListener('click', async e => {
   const btn = e.target.closest('.cb'); if (!btn) return;
   const cv = btn.dataset.cv, ca = btn.dataset.ca;
   if (ca === 'deg') {
@@ -6067,6 +6090,48 @@ document.getElementById('sidebar').addEventListener('click', e => {
 
   applyHeight();
 })();
+
+// ── Calculator keyboard shortcuts ─────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (document.getElementById('panelCalc').classList.contains('hidden')) return;
+  // Don't intercept while typing in a text field
+  var tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  var k = e.key, ctrl = e.ctrlKey || e.metaKey, shift = e.shiftKey;
+  if (ctrl) return;
+  var handled = true;
+  // Digits and decimal
+  if (/^[0-9]$/.test(k))         { if (calcExprStr === '0') calcExprStr = k; else calcExprStr += k; }
+  else if (k === '.')             { calcExprStr += '.'; }
+  // Operators
+  else if (k === '+')             { calcExprStr += '+'; }
+  else if (k === '-')             { calcExprStr += '-'; }
+  else if (k === '*')             { calcExprStr += '*'; }
+  else if (k === '/')             { calcExprStr += '/'; }
+  else if (k === '^')             { calcExprStr += '^'; }
+  else if (k === '%')             { calcExprStr += '%'; }
+  else if (k === '(' || k === ')') { calcExprStr += k; }
+  // Actions
+  else if (k === 'Enter' || k === '=') {
+    document.querySelector('#calcGrid .cb.eq')?.click(); e.preventDefault(); return;
+  }
+  else if (k === 'Backspace')     { calcExprStr = calcExprStr.slice(0, -1); }
+  else if (k === 'Escape')        { calcExprStr = ''; }
+  // Letter shortcuts (no shift = lowercase fn, shift = variant)
+  else if (k === 's' && !shift)   { calcExprStr += 'sin('; }
+  else if (k === 'S')             { calcExprStr += 'sqrt('; }
+  else if (k === 'c' && !shift)   { calcExprStr += 'cos('; }
+  else if (k === 'C')             { calcExprStr += 'cos('; }
+  else if (k === 't' && !shift)   { calcExprStr += 'tan('; }
+  else if (k === 'l' && !shift)   { calcExprStr += 'ln('; }
+  else if (k === 'L')             { calcExprStr += 'log('; }
+  else if (k === 'q')             { calcExprStr += 'sqrt('; }
+  else if (k === 'p')             { calcExprStr += 'pi'; }
+  else if (k === 'e' && !shift)   { calcExprStr += 'e'; }
+  else if (k === 'a')             { calcExprStr += 'abs('; }
+  else { handled = false; }
+  if (handled) { updateCalcDisplay(); e.preventDefault(); }
+});
 </script>
 </body>
 </html>
