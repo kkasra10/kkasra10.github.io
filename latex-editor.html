@@ -377,8 +377,8 @@
     .symbol-btn:hover { background: #ebf0fd; border-color: #c4d1f9; }
     .symbol-btn:active { background: #dde6fc; }
 
-    .symbol-preview { line-height: 1; pointer-events: none; }
-    .symbol-preview .katex { font-size: 0.9em; }
+    .symbol-preview { line-height: 1; pointer-events: none; color: #1f2937; }
+    .symbol-preview .katex { font-size: 0.9em; color: #1f2937; }
 
     .symbol-cmd {
       font-size: 8px;
@@ -559,6 +559,8 @@
     body.dark .sidebar-scroll::-webkit-scrollbar-thumb { background: #374151; }
     body.dark .symbol-group-title { color: #6b7280; }
     body.dark .symbol-btn:hover { background: #1e3a5f; border-color: #2d4a7a; }
+    body.dark .symbol-preview { color: #f9fafb; }
+    body.dark .symbol-preview .katex { color: #f9fafb; }
     body.dark .symbol-cmd { color: #4b5563; }
     body.dark .mode-tabs { background: #1a2332; border-bottom-color: #374151; }
     body.dark .mode-tab { color: #6b7280; }
@@ -3834,31 +3836,33 @@ function renderRecents() {
 
 // ── Search ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  let searchTimer = null;
   document.getElementById('searchInput').addEventListener('input', function () {
-    const raw = this.value.toLowerCase().trim();
-    // Strip leading backslash so "\frac" and "frac" both work
-    const q = raw.replace(/^\\+/, '');
+    clearTimeout(searchTimer);
+    const val = this.value;
+    searchTimer = setTimeout(() => {
+      const raw = val.toLowerCase().trim();
+      const q = raw.replace(/^\\+/, '');
 
-    // Hide recents while searching to reduce noise
-    const recentsGroup = document.getElementById('recents-group');
-    if (recentsGroup) recentsGroup.classList.toggle('hidden', q.length > 0);
+      const recentsGroup = document.getElementById('recents-group');
+      if (recentsGroup) recentsGroup.classList.toggle('hidden', q.length > 0);
 
-    document.querySelectorAll('.symbol-group:not(#recents-group)').forEach(group => {
-      const groupName = group.dataset.group || '';
-      let anyVisible = false;
-      group.querySelectorAll('.symbol-btn').forEach(btn => {
-        if (!q) { btn.style.display = ''; anyVisible = true; return; }
-        // Strip backslash and braces from cmd for cleaner matching
-        const cmd   = btn.dataset.cmd.replace(/^\\+/, '').replace(/[{}]/g, '');
-        const label = btn.dataset.label || '';
-        // Every space-separated word must match somewhere (cmd, label, or group)
-        const words = q.split(/\s+/);
-        const match = words.every(w => cmd.includes(w) || label.includes(w) || groupName.includes(w));
-        btn.style.display = match ? '' : 'none';
-        if (match) anyVisible = true;
+      document.querySelectorAll('.symbol-group:not(#recents-group)').forEach(group => {
+        const groupName = group.dataset.group || '';
+        let anyVisible = false;
+        group.querySelectorAll('.symbol-btn').forEach(btn => {
+          if (!q) { btn.style.display = ''; anyVisible = true; return; }
+          const cmd   = btn.dataset.cmd.replace(/^\\+/, '').replace(/[{}]/g, '');
+          const label = btn.dataset.label || '';
+          // ANY word in the query matching anywhere is enough (broad search)
+          const words = q.split(/\s+/).filter(Boolean);
+          const match = words.some(w => cmd.includes(w) || label.includes(w) || groupName.includes(w));
+          btn.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        });
+        group.classList.toggle('hidden', !anyVisible);
       });
-      group.classList.toggle('hidden', !anyVisible);
-    });
+    }, 180);
   });
 });
 
