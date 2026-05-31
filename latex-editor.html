@@ -634,30 +634,27 @@
       gap: 5px; padding: 8px; background: #f8fafc;
       overflow: hidden; min-height: 0;
     }
-    .cb .katex { font-size: 0.78em !important; pointer-events: none; }
+    .cb .katex { font-size: 1em !important; pointer-events: none; color: inherit; }
     .cb .katex-html { pointer-events: none; }
     .cb {
       background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
-      color: #374151; font-size: 14px; font-weight: 500; cursor: pointer;
+      color: #1f2937; font-size: 16px; font-weight: 500; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.08s, border-color 0.08s, transform 0.06s;
       user-select: none; -webkit-tap-highlight-color: transparent; padding: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .cb:hover  { background: #f3f4f6; border-color: #d1d5db; }
     .cb:active { transform: scale(0.93); background: #e5e7eb; }
-    .cb.num  { font-size: 17px; color: #111827; }
-    .cb.op   { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; font-size: 17px; }
-    .cb.op:hover  { background: #dbeafe; }
-    .cb.eq   { background: #3b6ef5; border-color: #3b6ef5; color: #fff; font-size: 18px; font-weight: 700; box-shadow: 0 2px 8px rgba(59,110,245,0.3); }
+    .cb.num  { font-size: 19px; background: #f9fafb; }
+    .cb.op   { font-size: 19px; }
+    .cb.fn   { font-size: 14px; }
+    .cb.deg  { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+    .cb.eq   { background: #3b6ef5; border-color: #3b6ef5; color: #fff; font-size: 20px; font-weight: 700; box-shadow: 0 2px 8px rgba(59,110,245,0.25); }
     .cb.eq:hover  { background: #2d5be0; }
-    .cb.clr  { background: #fff1f2; border-color: #fecdd3; color: #e11d48; }
-    .cb.clr:hover { background: #ffe4e6; }
-    .cb.fn   { background: #f5f3ff; border-color: #ddd6fe; color: #7c3aed; font-size: 12px; }
-    .cb.fn:hover  { background: #ede9fe; }
-    .cb.deg  { background: #fffbeb; border-color: #fde68a; color: #b45309; font-size: 11px; font-weight: 700; }
-    .cb.deg:hover { background: #fef3c7; }
-    /* dark mode overrides for calc */
+    .cb.clr  { background: #fff5f5; border-color: #fecaca; color: #dc2626; }
+    .cb.clr:hover { background: #fee2e2; }
+    /* dark mode */
     body.dark #panelCalc { background: #111827; }
     body.dark .calc-display { background: #1f2937; border-bottom-color: #374151; box-shadow: none; }
     body.dark .calc-katex-wrap .katex { color: #d1d5db; }
@@ -667,15 +664,12 @@
     body.dark .calc-hist-item { color: #4b5563; }
     body.dark .calc-hist-item:hover { color: #9ca3af; }
     body.dark .calc-grid { background: #111827; }
+    body.dark .cb { background: #1f2937; border-color: #374151; color: #e5e7eb; box-shadow: none; }
     body.dark .cb .katex { color: inherit !important; }
-    body.dark .cb { background: #1f2937; border-color: #374151; color: #d1d5db; box-shadow: none; }
     body.dark .cb:hover { background: #374151; }
-    body.dark .cb.num { color: #f9fafb; }
-    body.dark .cb.op  { background: #1e3a6e; border-color: #2d4a8a; color: #93bbff; }
-    body.dark .cb.eq  { background: #3b6ef5; border-color: #3b6ef5; }
+    body.dark .cb.num { background: #1a2332; color: #f9fafb; }
+    body.dark .cb.eq  { background: #3b6ef5; border-color: #3b6ef5; color: #fff; }
     body.dark .cb.clr { background: #2d1a1e; border-color: #4a2028; color: #f87171; }
-    body.dark .cb.fn  { background: #1e1a2e; border-color: #3b2d58; color: #a78bfa; }
-    body.dark .cb.deg { background: #1e1a0e; border-color: #4a3a0a; color: #fbbf24; }
     /* language selector */
     .settings-select {
       font-size: 11px; padding: 3px 5px; border: 1.5px solid #e5e7eb;
@@ -4792,45 +4786,45 @@ let calcDegMode = true;
 const CALC_BTNS = [
   // Row 1 – mode / constants / backspace
   { text:'DEG', ca:'deg', cls:'deg', id:'calcDegBtn' },
-  { lx:'\\pi',        cv:'pi',    cls:'fn' },
-  { lx:'e',           cv:'e',     cls:'fn' },
-  { text:'⌫',         ca:'back',  cls:'clr' },
+  { lx:'\\pi',           cv:'pi',    cls:'fn' },
+  { lx:'e',              cv:'e',     cls:'fn' },
+  { text:'⌫',            ca:'back',  cls:'clr' },
   // Row 2 – primary trig
-  { lx:'\\sin',       cv:'sin(',  cls:'fn' },
-  { lx:'\\cos',       cv:'cos(',  cls:'fn' },
-  { lx:'\\tan',       cv:'tan(',  cls:'fn' },
-  { text:'( )',        ca:'paren', cls:'fn' },
+  { lx:'\\sin',          cv:'sin(',  cls:'fn' },
+  { lx:'\\cos',          cv:'cos(',  cls:'fn' },
+  { lx:'\\tan',          cv:'tan(',  cls:'fn' },
+  { lx:'(\\,)',          ca:'paren', cls:'fn' },
   // Row 3 – inverse trig
-  { lx:'\\sin^{-1}',  cv:'asin(', cls:'fn' },
-  { lx:'\\cos^{-1}',  cv:'acos(', cls:'fn' },
-  { lx:'\\tan^{-1}',  cv:'atan(', cls:'fn' },
-  { lx:'x^n',         cv:'^',     cls:'fn' },
+  { lx:'\\sin^{-1}',     cv:'asin(', cls:'fn' },
+  { lx:'\\cos^{-1}',     cv:'acos(', cls:'fn' },
+  { lx:'\\tan^{-1}',     cv:'atan(', cls:'fn' },
+  { lx:'x^n',            cv:'^',     cls:'fn' },
   // Row 4 – logarithms
-  { lx:'\\ln',        cv:'ln(',   cls:'fn' },
-  { lx:'\\log_{10}',  cv:'log(',  cls:'fn' },
-  { lx:'\\log_2',     cv:'log2(', cls:'fn' },
-  { lx:'x^2',         cv:'^2',    cls:'fn' },
+  { lx:'\\ln',           cv:'ln(',   cls:'fn' },
+  { lx:'\\log_{10}',     cv:'log(',  cls:'fn' },
+  { lx:'\\log_2',        cv:'log2(', cls:'fn' },
+  { lx:'x^2',            cv:'^2',    cls:'fn' },
   // Row 5 – exponentials / roots
-  { lx:'e^x',         cv:'exp(',  cls:'fn' },
-  { lx:'\\sqrt{x}',   cv:'sqrt(', cls:'fn' },
-  { lx:'\\sqrt[3]{x}',cv:'cbrt(', cls:'fn' },
-  { lx:'|x|',         cv:'abs(',  cls:'fn' },
+  { lx:'e^x',            cv:'exp(',  cls:'fn' },
+  { lx:'\\sqrt{x}',      cv:'sqrt(', cls:'fn' },
+  { lx:'\\sqrt[3]{x}',   cv:'cbrt(', cls:'fn' },
+  { lx:'|x|',            cv:'abs(',  cls:'fn' },
   // Row 6 – AC / misc
-  { text:'AC',         ca:'clear', cls:'clr' },
-  { text:'±',          ca:'sign',  cls:'fn' },
-  { lx:'n!',           cv:'!',     cls:'fn' },
-  { lx:'\\div',        cv:'/',     cls:'op' },
-  // Rows 7-9 – numpad
-  { text:'7', cv:'7', cls:'num' }, { text:'8', cv:'8', cls:'num' },
-  { text:'9', cv:'9', cls:'num' }, { lx:'\\times', cv:'*', cls:'op' },
-  { text:'4', cv:'4', cls:'num' }, { text:'5', cv:'5', cls:'num' },
-  { text:'6', cv:'6', cls:'num' }, { text:'−', cv:'-', cls:'op' },
-  { text:'1', cv:'1', cls:'num' }, { text:'2', cv:'2', cls:'num' },
-  { text:'3', cv:'3', cls:'num' }, { text:'+', cv:'+', cls:'op' },
+  { text:'AC',            ca:'clear', cls:'clr' },
+  { lx:'\\pm',           ca:'sign',  cls:'fn' },
+  { lx:'n!',             cv:'!',     cls:'fn' },
+  { lx:'\\div',          cv:'/',     cls:'op' },
+  // Rows 7–9 – numpad
+  { lx:'7', cv:'7', cls:'num' }, { lx:'8', cv:'8', cls:'num' },
+  { lx:'9', cv:'9', cls:'num' }, { lx:'\\times', cv:'*', cls:'op' },
+  { lx:'4', cv:'4', cls:'num' }, { lx:'5', cv:'5', cls:'num' },
+  { lx:'6', cv:'6', cls:'num' }, { lx:'-',        cv:'-', cls:'op' },
+  { lx:'1', cv:'1', cls:'num' }, { lx:'2', cv:'2', cls:'num' },
+  { lx:'3', cv:'3', cls:'num' }, { lx:'+',        cv:'+', cls:'op' },
   // Row 10
-  { text:'0', cv:'0', cls:'num', span:2 },
-  { text:'.', cv:'.', cls:'num' },
-  { text:'=', ca:'eval', cls:'eq' },
+  { lx:'0', cv:'0', cls:'num', span:2 },
+  { lx:'.',  cv:'.', cls:'num' },
+  { lx:'=',  ca:'eval', cls:'eq' },
 ];
 
 function buildCalcGrid() {
