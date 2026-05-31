@@ -4905,6 +4905,7 @@ function loadMathJS() {
 
 let calcExprStr = '';
 let calcDegMode = true;
+let calcAlgMode = false;
 
 // Left function sidebar — scientific extras
 const CALC_FN_BTNS = [
@@ -4944,7 +4945,7 @@ const CALC_BTNS = [
   { lx:'\\pm',    ca:'sign', cls:'fn' },
 
   { text:'AC',     ca:'clear',cls:'clr' },
-  { lx:'x^2',     cv:'^2',   cls:'fn' },
+  { text:'ALG',   ca:'alg',  cls:'deg' },
   { lx:'x\\%',    cv:'%',    cls:'fn' },
   { lx:'\\div',   cv:'/',    cls:'op' },
 
@@ -5089,12 +5090,20 @@ function fmtCalcNum(n) {
 }
 
 async function evalCalcExpr(expr) {
+  if (calcAlgMode) {
+    const nd = await loadNerdamer();
+    return nd(expr).toString();
+  }
   const m = await loadMathJS();
   return m.evaluate(expr, calcDegMode ? calcDegScope() : calcExtraScope());
 }
 
 function calcToLatexStr(expr) {
   if (!expr) return '';
+  // Algebra mode: use nerdamer's toTeX if available
+  if (calcAlgMode && window.nerdamer) {
+    try { return window.nerdamer(expr).toTeX(); } catch(_) {}
+  }
   try { if (window.math && window.math.parse) return window.math.parse(expr).toTex({ parenthesis:'auto' }); } catch(_) {}
   return expr.replace(/\bpi\b/g,'\\pi').replace(/\bsqrt\(/g,'\\sqrt{')
     .replace(/\bsin\(/g,'\\sin(').replace(/\bcos\(/g,'\\cos(').replace(/\btan\(/g,'\\tan(')
@@ -5111,7 +5120,7 @@ function updateCalcDisplay() {
   if (!calcExprStr) { document.getElementById('calcResult').textContent = ''; return; }
   evalCalcExpr(calcExprStr).then(r => {
     const el = document.getElementById('calcResult');
-    el.textContent = fmtCalcNum(r); el.classList.remove('error');
+    el.textContent = String(r); el.classList.remove('error');
   }).catch(() => { document.getElementById('calcResult').textContent = ''; });
 }
 
@@ -5119,8 +5128,8 @@ function addCalcHistItem(expr, result) {
   const hist = document.getElementById('calcHistory');
   const item = document.createElement('div');
   item.className = 'calc-hist-item';
-  item.innerHTML = expr.replace(/</g,'&lt;') + '<span class="calc-hist-eq">=</span>' + fmtCalcNum(result);
-  item.addEventListener('click', () => { calcExprStr = fmtCalcNum(result); updateCalcDisplay(); });
+  item.innerHTML = expr.replace(/</g,'&lt;') + '<span class="calc-hist-eq">=</span>' + String(result);
+  item.addEventListener('click', () => { calcExprStr = String(result); updateCalcDisplay(); });
   hist.insertBefore(item, hist.firstChild);
 }
 
@@ -5137,6 +5146,15 @@ document.getElementById('calcLayout').addEventListener('click', async e => {
     btn.textContent = calcDegMode ? 'DEG' : 'RAD';
     updateCalcDisplay(); return;
   }
+  if (ca === 'alg') {
+    calcAlgMode = !calcAlgMode;
+    btn.textContent = calcAlgMode ? 'ALG ✓' : 'ALG';
+    btn.style.background = calcAlgMode ? '#3b6ef5' : '';
+    btn.style.color       = calcAlgMode ? '#fff'    : '';
+    btn.style.borderColor = calcAlgMode ? '#3b6ef5' : '';
+    if (calcAlgMode) loadNerdamer(); // preload
+    updateCalcDisplay(); return;
+  }
   if (cv !== undefined) {
     if (calcExprStr === '0' && /^\d$/.test(cv)) calcExprStr = cv; else calcExprStr += cv;
     updateCalcDisplay();
@@ -5149,10 +5167,16 @@ document.getElementById('calcLayout').addEventListener('click', async e => {
       case 'eval':
         if (!calcExprStr) break;
         try {
-          const m = await loadMathJS();
-          const result = m.evaluate(calcExprStr, calcDegMode ? calcDegScope() : calcExtraScope());
+          let result;
+          if (calcAlgMode) {
+            const nd = await loadNerdamer();
+            result = nd(calcExprStr).toString();
+          } else {
+            const m = await loadMathJS();
+            result = m.evaluate(calcExprStr, calcDegMode ? calcDegScope() : calcExtraScope());
+          }
           addCalcHistItem(calcExprStr, result);
-          calcExprStr = fmtCalcNum(result); updateCalcDisplay();
+          calcExprStr = String(result); updateCalcDisplay();
         } catch(_) {
           const el = document.getElementById('calcResult');
           el.textContent = 'Error'; el.classList.add('error');
