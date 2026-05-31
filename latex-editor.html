@@ -4461,8 +4461,8 @@ function applyHAlignSmart(align) {
   const end       = lineEnd === -1 ? val.length : lineEnd;
   const block     = val.slice(lineStart, end);
   const updated   = block.split('\n').map(line => {
-    let clean = line.replace(/%<(left|center|right)>/g, '').trimEnd();
-    return align === 'center' ? clean : clean + ' %<' + align + '>';
+    const clean = line.replace(/%<(left|center|right)>/g, '').trimEnd();
+    return clean + ' %<' + align + '>';
   }).join('\n');
   ta.value = val.slice(0, lineStart) + updated + val.slice(end);
   ta.setSelectionRange(lineStart, lineStart + updated.length);
