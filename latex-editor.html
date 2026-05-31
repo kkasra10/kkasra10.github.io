@@ -1113,6 +1113,18 @@
 
     .color-apply-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
 
+    /* ── Size wrap buttons ── */
+    .size-wrap-btn {
+      padding: 2px 5px; font-size: 9.5px; font-weight: 700;
+      border: 1.5px solid #e5e7eb; border-radius: 5px;
+      background: #fff; color: #6b7280; cursor: pointer; flex-shrink: 0;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+      line-height: 1.4;
+    }
+    .size-wrap-btn:hover { background: #ebf0fd; border-color: #c4d1f9; color: #3b6ef5; }
+    body.dark .size-wrap-btn { background: #1f2937; border-color: #374151; color: #6b7280; }
+    body.dark .size-wrap-btn:hover { background: #1e3a5f; border-color: #2d4a7a; color: #93bbff; }
+
     /* ── Templates panel ── */
     .templates-wrap { position: relative; }
     .templates-btn {
@@ -1362,6 +1374,13 @@
         </div>
       </div>
       <button class="color-apply-btn" id="colorApplyBtn">Wrap selection</button>
+      <div class="align-sep" style="height:14px;margin:0 4px;"></div>
+      <button class="size-wrap-btn" data-size="tiny"        title="Tiny">xs</button>
+      <button class="size-wrap-btn" data-size="small"       title="Small">s</button>
+      <button class="size-wrap-btn" data-size="normalsize"  title="Normal">m</button>
+      <button class="size-wrap-btn" data-size="large"       title="Large">l</button>
+      <button class="size-wrap-btn" data-size="Large"       title="Larger">xl</button>
+      <button class="size-wrap-btn" data-size="huge"        title="Huge">2xl</button>
       <div class="templates-wrap">
         <button class="templates-btn" id="templatesBtn">Templates</button>
         <div class="templates-panel hidden" id="templatesPanel"></div>
@@ -4129,6 +4148,30 @@ document.getElementById('colorApplyBtn').addEventListener('click', () => {
 
   ta.focus();
   render();
+});
+
+// ── Size wrap buttons ─────────────────────────────────────────────────────────
+document.querySelectorAll('.size-wrap-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const size = btn.dataset.size;
+    const ta   = document.getElementById('latexInput');
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    const selected = ta.value.slice(start, end);
+    let insertion;
+    if (selected.length > 0) {
+      insertion = `{\\${size} ${selected}}`;
+    } else {
+      insertion = `{\\${size} }`;
+    }
+    ta.value = ta.value.slice(0, start) + insertion + ta.value.slice(end);
+    const pos = selected.length > 0 ? start + insertion.length : start + insertion.length - 1;
+    ta.setSelectionRange(pos, pos);
+    ta.focus();
+    render();
+    histPush(ta.value);
+    autoSaveInput(ta.value);
+  });
 });
 
 // ── Alignment toolbar ────────────────────────────────────────────────────────
