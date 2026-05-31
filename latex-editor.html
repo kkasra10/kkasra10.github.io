@@ -409,7 +409,7 @@
       justify-content: center;
       padding: 48px 60px;
       overflow-y: auto;
-      gap: 4px;
+      gap: var(--line-gap, 12px);
       color: #1f2937;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -419,7 +419,7 @@
     .output-area::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
 
     .output-line {
-      min-height: 52px;
+      min-height: var(--line-min-h, 52px);
       width: 100%;
       display: flex;
       align-items: center;
@@ -580,6 +580,31 @@
     body.dark .latex-input::placeholder { color: #374151; }
     body.dark .hint-key { background: #1f2937; border-color: #374151; color: #6b7280; }
     body.dark .output-area { background: #ffffff; }
+
+    /* ── Spacing slider ── */
+    .spacing-slider-wrap {
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .spacing-slider-label {
+      font-size: 10px; color: #9ca3af; white-space: nowrap; user-select: none;
+    }
+    .spacing-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 52px; height: 3px; border-radius: 2px;
+      background: #e5e7eb; outline: none; cursor: pointer;
+    }
+    .spacing-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #3b6ef5; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .spacing-slider::-moz-range-thumb {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #3b6ef5; cursor: pointer; border: none;
+    }
+    body.dark .spacing-slider { background: #374151; }
+    body.dark .spacing-slider-label { color: #6b7280; }
     body.dark .settings-panel { background: #1f2937; border-color: #374151; }
     body.dark .settings-panel-title { color: #6b7280; }
     body.dark .settings-label { color: #d1d5db; }
@@ -1294,6 +1319,11 @@
     <div class="align-sep"></div>
     <button class="align-btn" id="undoBtn" title="Undo" disabled>&#8630;</button>
     <button class="align-btn" id="redoBtn" title="Redo" disabled>&#8631;</button>
+    <div class="align-sep"></div>
+    <div class="spacing-slider-wrap">
+      <span class="spacing-slider-label">&#8597;</span>
+      <input type="range" class="spacing-slider" id="spacingSlider" min="0" max="48" step="4" value="12">
+    </div>
     <div style="margin-left:auto;display:flex;gap:5px;">
       <button class="paper-dl-btn" id="latexCopyBtn" title="Copy all LaTeX source">&#10064; Copy LaTeX</button>
       <button class="paper-dl-btn" id="latexCopyImg" title="Copy rendered output to clipboard">&#128203; Copy Image</button>
@@ -3891,6 +3921,13 @@ function saveSettings(patch) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign(loadSettings(), patch)));
 }
 
+function applyLineSpacing(val) {
+  const gap   = val + 'px';
+  const minH  = (36 + val * 0.67) + 'px';
+  document.documentElement.style.setProperty('--line-gap', gap);
+  document.documentElement.style.setProperty('--line-min-h', minH);
+}
+
 function applySettings() {
   const s = loadSettings();
   // Dark mode
@@ -3901,7 +3938,17 @@ function applySettings() {
   if (s.autoSave && s.savedInput) {
     document.getElementById('latexInput').value = s.savedInput;
   }
+  // Line spacing
+  const spacing = s.lineSpacing !== undefined ? s.lineSpacing : 12;
+  document.getElementById('spacingSlider').value = spacing;
+  applyLineSpacing(spacing);
 }
+
+document.getElementById('spacingSlider').addEventListener('input', function() {
+  const val = parseInt(this.value, 10);
+  applyLineSpacing(val);
+  saveSettings({ lineSpacing: val });
+});
 
 document.getElementById('settingDarkMode').addEventListener('change', function() {
   saveSettings({ darkMode: this.checked });
