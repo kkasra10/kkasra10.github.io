@@ -584,63 +584,101 @@
     body.dark .output-area { background: #ffffff; }
 
     /* ── Calculator panel ── */
-    #panelCalc { background: #12121e; }
+    #panelCalc { background: #f8fafc; overflow: hidden; }
     .calc-display {
-      background: #0a0a14; padding: 14px 18px 10px;
-      flex-shrink: 0; border-bottom: 1px solid #1e1e30;
+      background: #fff; padding: 16px 20px 12px; flex-shrink: 0;
+      border-bottom: 1.5px solid #e5e7eb;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
+    .calc-katex-wrap {
+      min-height: 28px; text-align: right; overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .calc-katex-wrap .katex { font-size: 1.1em; color: #374151; }
     .calc-expr {
-      font-family: 'SF Mono','Fira Code',monospace; font-size: 12px;
-      color: #4b5563; text-align: right; min-height: 16px;
+      font-family: 'SF Mono','Fira Code',monospace; font-size: 11px;
+      color: #9ca3af; text-align: right; min-height: 14px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .calc-result {
-      font-family: 'SF Mono','Fira Code',monospace; font-size: 30px;
-      font-weight: 300; color: #f9fafb; text-align: right;
-      min-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 32px; font-weight: 300; color: #3b6ef5; text-align: right;
+      min-height: 42px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    .calc-result.error { color: #ef4444; font-size: 15px; padding-top: 10px; }
-    .calc-display-row {
-      display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px;
-    }
+    .calc-result.error { color: #ef4444; font-size: 14px; padding-top: 12px; }
+    .calc-display-row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
     .calc-action-btn {
-      font-size: 10px; font-weight: 600; padding: 3px 8px; border: none;
-      border-radius: 5px; cursor: pointer; transition: opacity 0.1s;
+      font-size: 10px; font-weight: 600; padding: 4px 10px;
+      border: 1.5px solid; border-radius: 6px; cursor: pointer;
+      transition: background 0.1s; background: transparent;
     }
-    .calc-action-btn:hover { opacity: 0.8; }
-    .calc-to-latex { background: #14293d; color: #34d399; }
-    .calc-wolfram  { background: #1e1608; color: #fb923c; }
+    .calc-to-latex { border-color: #6ee7b7; color: #059669; }
+    .calc-to-latex:hover { background: #ecfdf5; }
+    .calc-wolfram  { border-color: #fed7aa; color: #ea580c; }
+    .calc-wolfram:hover  { background: #fff7ed; }
     .calc-history {
-      flex: 0 0 40px; overflow-y: auto; padding: 3px 14px;
-      border-bottom: 1px solid #1a1a2e;
+      flex: 0 0 40px; overflow-y: auto; padding: 3px 16px;
+      border-bottom: 1.5px solid #e5e7eb; background: #f9fafb;
       -webkit-overflow-scrolling: touch;
     }
     .calc-hist-item {
-      font-family: 'SF Mono',monospace; font-size: 10px; color: #374151;
+      font-family: 'SF Mono',monospace; font-size: 10px; color: #9ca3af;
       text-align: right; cursor: pointer; white-space: nowrap; padding: 1px 0;
     }
-    .calc-hist-item:hover { color: #9ca3af; }
-    .calc-hist-item .calc-hist-eq { color: #6b7280; margin: 0 5px; }
+    .calc-hist-item:hover { color: #374151; }
+    .calc-hist-item .calc-hist-eq { color: #d1d5db; margin: 0 4px; }
     .calc-grid {
       flex: 1; display: grid;
       grid-template-columns: repeat(4, 1fr);
       grid-template-rows: repeat(8, 1fr);
-      gap: 1px; background: #0a0a14; overflow: hidden; min-height: 0;
+      gap: 5px; padding: 8px; background: #f8fafc;
+      overflow: hidden; min-height: 0;
     }
-    .cb { /* calc button base */
-      background: #1a1a2e; border: none; color: #d1d5db;
-      font-size: 14px; font-weight: 500; cursor: pointer;
+    .cb {
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      color: #374151; font-size: 14px; font-weight: 500; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.07s; user-select: none;
-      -webkit-tap-highlight-color: transparent; padding: 0;
+      transition: background 0.08s, border-color 0.08s, transform 0.06s;
+      user-select: none; -webkit-tap-highlight-color: transparent; padding: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    .cb:active { filter: brightness(1.3); }
-    .cb.num  { background: #1e1e32; color: #f9fafb; font-size: 17px; }
-    .cb.op   { background: #1a2248; color: #93bbff; font-size: 17px; }
-    .cb.eq   { background: #3b6ef5; color: #fff; font-size: 18px; font-weight: 700; }
-    .cb.clr  { background: #1e1e30; color: #f87171; }
-    .cb.fn   { background: #141426; color: #a78bfa; font-size: 12px; }
-    .cb.deg  { background: #141426; color: #fbbf24; font-size: 11px; font-weight: 700; }
+    .cb:hover  { background: #f3f4f6; border-color: #d1d5db; }
+    .cb:active { transform: scale(0.93); background: #e5e7eb; }
+    .cb.num  { font-size: 17px; color: #111827; }
+    .cb.op   { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; font-size: 17px; }
+    .cb.op:hover  { background: #dbeafe; }
+    .cb.eq   { background: #3b6ef5; border-color: #3b6ef5; color: #fff; font-size: 18px; font-weight: 700; box-shadow: 0 2px 8px rgba(59,110,245,0.3); }
+    .cb.eq:hover  { background: #2d5be0; }
+    .cb.clr  { background: #fff1f2; border-color: #fecdd3; color: #e11d48; }
+    .cb.clr:hover { background: #ffe4e6; }
+    .cb.fn   { background: #f5f3ff; border-color: #ddd6fe; color: #7c3aed; font-size: 12px; }
+    .cb.fn:hover  { background: #ede9fe; }
+    .cb.deg  { background: #fffbeb; border-color: #fde68a; color: #b45309; font-size: 11px; font-weight: 700; }
+    .cb.deg:hover { background: #fef3c7; }
+    /* dark mode overrides for calc */
+    body.dark #panelCalc { background: #111827; }
+    body.dark .calc-display { background: #1f2937; border-bottom-color: #374151; box-shadow: none; }
+    body.dark .calc-katex-wrap .katex { color: #d1d5db; }
+    body.dark .calc-expr { color: #4b5563; }
+    body.dark .calc-result { color: #93bbff; }
+    body.dark .calc-history { background: #1a2332; border-bottom-color: #374151; }
+    body.dark .calc-hist-item { color: #4b5563; }
+    body.dark .calc-hist-item:hover { color: #9ca3af; }
+    body.dark .calc-grid { background: #111827; }
+    body.dark .cb { background: #1f2937; border-color: #374151; color: #d1d5db; box-shadow: none; }
+    body.dark .cb:hover { background: #374151; }
+    body.dark .cb.num { color: #f9fafb; }
+    body.dark .cb.op  { background: #1e3a6e; border-color: #2d4a8a; color: #93bbff; }
+    body.dark .cb.eq  { background: #3b6ef5; border-color: #3b6ef5; }
+    body.dark .cb.clr { background: #2d1a1e; border-color: #4a2028; color: #f87171; }
+    body.dark .cb.fn  { background: #1e1a2e; border-color: #3b2d58; color: #a78bfa; }
+    body.dark .cb.deg { background: #1e1a0e; border-color: #4a3a0a; color: #fbbf24; }
+    /* language selector */
+    .settings-select {
+      font-size: 11px; padding: 3px 5px; border: 1.5px solid #e5e7eb;
+      border-radius: 5px; background: #fff; color: #374151; cursor: pointer; outline: none;
+    }
+    body.dark .settings-select { background: #111827; border-color: #374151; color: #d1d5db; }
 
     /* ── RTL mode ── */
     html[dir=rtl] body { flex-direction: row-reverse; }
@@ -1376,25 +1414,38 @@
     <div class="settings-panel hidden" id="settingsPanel">
       <div class="settings-panel-title">Settings</div>
       <div class="settings-row">
-        <span class="settings-label">Auto-save input</span>
+        <span class="settings-label" data-i18n="settings_autosave">Auto-save input</span>
         <label class="toggle-switch">
           <input type="checkbox" id="settingAutoSave">
           <span class="toggle-knob"></span>
         </label>
       </div>
       <div class="settings-row">
-        <span class="settings-label">Dark mode</span>
+        <span class="settings-label" data-i18n="settings_dark">Dark mode</span>
         <label class="toggle-switch">
           <input type="checkbox" id="settingDarkMode">
           <span class="toggle-knob"></span>
         </label>
       </div>
       <div class="settings-row">
-        <span class="settings-label">RTL layout</span>
+        <span class="settings-label" data-i18n="settings_rtl">RTL layout</span>
         <label class="toggle-switch">
           <input type="checkbox" id="settingRTL">
           <span class="toggle-knob"></span>
         </label>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label" data-i18n="settings_lang">Language</span>
+        <select id="settingLang" class="settings-select">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="de">Deutsch</option>
+          <option value="ar">العربية</option>
+          <option value="fa">فارسی</option>
+          <option value="zh">中文</option>
+          <option value="ja">日本語</option>
+        </select>
       </div>
     </div>
   </div>
@@ -1608,6 +1659,7 @@ exit 2 bottom 500"></textarea>
   <!-- Calculator panel -->
   <div class="panel hidden" id="panelCalc">
     <div class="calc-display">
+      <div class="calc-katex-wrap" id="calcKatex"></div>
       <div class="calc-expr" id="calcExpr">0</div>
       <div class="calc-result" id="calcResult"></div>
       <div class="calc-display-row">
@@ -4069,6 +4121,48 @@ function render() {
   });
 }
 
+// ── i18n translations ─────────────────────────────────────────────────────────
+const I18N = {
+  en: { tab_latex:'LaTeX', tab_animate:'Animate', tab_paper:'Paper', tab_calc:'Calc', settings_title:'Settings', settings_autosave:'Auto-save input', settings_dark:'Dark mode', settings_rtl:'RTL layout', settings_lang:'Language', sidebar_header:'Symbols', search_ph:'Search symbols…', recently_used:'Recently Used', placeholder:'Start typing to render LaTeX…', input_label:'LaTeX Input', hint_line:'Each line renders separately.', hint_click:'symbol to insert at cursor.', color_label:'Color', wrap_sel:'Wrap selection', templates_btn:'Templates', templates_title:'Templates', copy_latex:'⊡ Copy LaTeX', copy_img:'📋 Copy Image', share:'🔗 Share', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'Align' },
+  fr: { tab_latex:'LaTeX', tab_animate:'Animer', tab_paper:'Article', tab_calc:'Calc', settings_title:'Param\xe8tres', settings_autosave:'Sauvegarde auto', settings_dark:'Mode sombre', settings_rtl:'Mise en page RTL', settings_lang:'Langue', sidebar_header:'Symboles', search_ph:'Rechercher…', recently_used:'R\xe9cemment utilis\xe9s', placeholder:'Commencez \xe0 \xe9crire en LaTeX…', input_label:'Entr\xe9e LaTeX', hint_line:'Chaque ligne est rendue s\xe9par\xe9ment.', hint_click:'Symbole pour ins\xe9rer.', color_label:'Couleur', wrap_sel:'Entourer s\xe9lection', templates_btn:'Mod\xe8les', templates_title:'Mod\xe8les', copy_latex:'Copier LaTeX', copy_img:'Copier image', share:'Partager', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'Aligner' },
+  es: { tab_latex:'LaTeX', tab_animate:'Animar', tab_paper:'Art\xedculo', tab_calc:'Calc', settings_title:'Ajustes', settings_autosave:'Guardado autom\xe1tico', settings_dark:'Modo oscuro', settings_rtl:'Dise\xf1o RTL', settings_lang:'Idioma', sidebar_header:'S\xedmbolos', search_ph:'Buscar s\xedmbolos…', recently_used:'Usados recientemente', placeholder:'Empieza a escribir LaTeX…', input_label:'Entrada LaTeX', hint_line:'Cada l\xednea se renderiza por separado.', hint_click:'S\xedmbolo para insertar.', color_label:'Color', wrap_sel:'Envolver selecci\xf3n', templates_btn:'Plantillas', templates_title:'Plantillas', copy_latex:'Copiar LaTeX', copy_img:'Copiar imagen', share:'Compartir', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'Alinear' },
+  de: { tab_latex:'LaTeX', tab_animate:'Animieren', tab_paper:'Artikel', tab_calc:'Rechner', settings_title:'Einstellungen', settings_autosave:'Automatisch speichern', settings_dark:'Dunkelmodus', settings_rtl:'RTL-Layout', settings_lang:'Sprache', sidebar_header:'Symbole', search_ph:'Symbole suchen…', recently_used:'Zuletzt verwendet', placeholder:'LaTeX eingeben…', input_label:'LaTeX-Eingabe', hint_line:'Jede Zeile wird separat gerendert.', hint_click:'Symbol zum Einf\xfcgen anklicken.', color_label:'Farbe', wrap_sel:'Auswahl einschlie\xdfen', templates_btn:'Vorlagen', templates_title:'Vorlagen', copy_latex:'LaTeX kopieren', copy_img:'Bild kopieren', share:'Teilen', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'Ausrichten' },
+  ar: { tab_latex:'لاتك', tab_animate:'تحريك', tab_paper:'مقالة', tab_calc:'حاسبة', settings_title:'الإعدادات', settings_autosave:'حفظ تلقائي', settings_dark:'الوضع الداكن', settings_rtl:'تخطيط RTL', settings_lang:'اللغة', sidebar_header:'الرموز', search_ph:'ابحث عن الرموز…', recently_used:'المستخدمة مؤخراً', placeholder:'ابدأ الكتابة بلاتك…', input_label:'إدخال LaTeX', hint_line:'كل سطر يُعرض بشكل منفصل.', hint_click:'انقر على رمز للإدراج.', color_label:'اللون', wrap_sel:'التفاف التحديد', templates_btn:'القوالب', templates_title:'القوالب', copy_latex:'نسخ LaTeX', copy_img:'نسخ الصورة', share:'مشاركة', to_latex:'إلى LaTeX', wolfram:'وولفرام ↗', align_label:'محاذاة' },
+  fa: { tab_latex:'لاتک', tab_animate:'انیمیشن', tab_paper:'مقاله', tab_calc:'ماشین‌حساب', settings_title:'تنظیمات', settings_autosave:'ذخیره خودکار', settings_dark:'حالت تاریک', settings_rtl:'چیدمان راست‌به‌چپ', settings_lang:'زبان', sidebar_header:'نمادها', search_ph:'جستجوی نمادها…', recently_used:'اخیراً استفاده‌شده', placeholder:'لاتک بنویسید…', input_label:'ورودی LaTeX', hint_line:'هر خط جداگانه رندر می‌شود.', hint_click:'روی نماد کلیک کنید.', color_label:'رنگ', wrap_sel:'دربرگرفتن انتخاب', templates_btn:'قالب‌ها', templates_title:'قالب‌ها', copy_latex:'کپی LaTeX', copy_img:'کپی تصویر', share:'اشتراک‌گذاری', to_latex:'به LaTeX', wolfram:'وولفرام ↗', align_label:'تراز' },
+  zh: { tab_latex:'LaTeX', tab_animate:'动画', tab_paper:'论文', tab_calc:'计算器', settings_title:'设置', settings_autosave:'自动保存', settings_dark:'深色模式', settings_rtl:'RTL 布局', settings_lang:'语言', sidebar_header:'符号', search_ph:'搜索符号…', recently_used:'最近使用', placeholder:'开始输入 LaTeX…', input_label:'LaTeX 输入', hint_line:'每行单独渲染。', hint_click:'点击符号插入。', color_label:'颜色', wrap_sel:'包裹选区', templates_btn:'模板', templates_title:'模板', copy_latex:'复制 LaTeX', copy_img:'复制图片', share:'分享', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'对齐' },
+  ja: { tab_latex:'LaTeX', tab_animate:'アニメ', tab_paper:'論文', tab_calc:'計算機', settings_title:'設定', settings_autosave:'自動保存', settings_dark:'ダークモード', settings_rtl:'RTLレイアウト', settings_lang:'言語', sidebar_header:'記号', search_ph:'記号を検索…', recently_used:'最近使用した', placeholder:'LaTeXを入力…', input_label:'LaTeX入力', hint_line:'各行は個別にレンダリングされます。', hint_click:'記号をクリックして挿入。', color_label:'色', wrap_sel:'選択範囲を囲む', templates_btn:'テンプレート', templates_title:'テンプレート', copy_latex:'LaTeXをコピー', copy_img:'画像をコピー', share:'共有', to_latex:'→ LaTeX', wolfram:'↗ Wolfram', align_label:'整列' },
+};
+const RTL_LANGS = new Set(['ar','fa']);
+
+function applyLanguage(lang) {
+  const t = I18N[lang] || I18N.en;
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const setAttr = (id, attr, val) => { const el = document.getElementById(id); if (el) el.setAttribute(attr, val); };
+  set('tabLatex', t.tab_latex); set('tabAnimate', t.tab_animate);
+  set('tabPaper', t.tab_paper); set('tabCalc', t.tab_calc);
+  setAttr('searchInput','placeholder', t.search_ph);
+  const sh = document.querySelector('.sidebar-header'); if (sh) { sh.childNodes[0].textContent = t.sidebar_header + ' '; }
+  const ph = document.querySelector('.placeholder-text'); if (ph) ph.textContent = t.placeholder;
+  const il = document.querySelector('.input-label'); if (il) il.textContent = t.input_label;
+  const hints = document.querySelectorAll('.input-hint span'); if (hints[0]) hints[0].textContent = t.hint_line; if (hints[1]) hints[1].textContent = t.hint_click;
+  const cl = document.querySelector('.color-toolbar-label'); if (cl) cl.textContent = t.color_label;
+  const wa = document.querySelector('.color-apply-btn'); if (wa) wa.textContent = t.wrap_sel;
+  const tb = document.getElementById('templatesBtn'); if (tb) tb.textContent = t.templates_btn;
+  set('latexCopyBtn', t.copy_latex); set('latexCopyImg', t.copy_img); set('latexShareBtn', t.share);
+  set('calcToLatex', t.to_latex); set('calcWolfram', t.wolfram);
+  const al = document.querySelector('.align-toolbar-label'); if (al) al.textContent = t.align_label;
+  const sp = document.querySelector('.settings-panel-title'); if (sp) sp.textContent = t.settings_title;
+  document.querySelectorAll('.settings-row .settings-label').forEach(el => {
+    const k = el.dataset.i18n; if (k && t[k]) el.textContent = t[k];
+  });
+  // Auto-enable RTL for RTL languages (unless user explicitly overrode)
+  if (RTL_LANGS.has(lang)) {
+    document.documentElement.setAttribute('dir','rtl');
+    document.getElementById('settingRTL').checked = true;
+    saveSettings({ rtl: true });
+  }
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 const SETTINGS_KEY = 'lx_settings';
 
@@ -4099,6 +4193,10 @@ function applySettings() {
   // RTL
   document.getElementById('settingRTL').checked = !!s.rtl;
   document.documentElement.setAttribute('dir', s.rtl ? 'rtl' : 'ltr');
+  // Language
+  const lang = s.lang || 'en';
+  document.getElementById('settingLang').value = lang;
+  if (lang !== 'en') applyLanguage(lang);
   // Line spacing
   const spacing = s.lineSpacing !== undefined ? s.lineSpacing : 12;
   document.getElementById('spacingSlider').value = spacing;
@@ -4119,6 +4217,11 @@ document.getElementById('settingDarkMode').addEventListener('change', function()
 document.getElementById('settingRTL').addEventListener('change', function() {
   saveSettings({ rtl: this.checked });
   document.documentElement.setAttribute('dir', this.checked ? 'rtl' : 'ltr');
+});
+
+document.getElementById('settingLang').addEventListener('change', function() {
+  saveSettings({ lang: this.value });
+  applyLanguage(this.value);
 });
 
 document.getElementById('settingAutoSave').addEventListener('change', function() {
@@ -4748,8 +4851,30 @@ async function evalCalcExpr(expr) {
   return result;
 }
 
+function calcToLatexStr(expr) {
+  if (!expr) return '';
+  try {
+    if (window.math && window.math.parse) return window.math.parse(expr).toTex({ parenthesis: 'auto' });
+  } catch(_) {}
+  // Lightweight fallback conversion
+  return expr
+    .replace(/\bpi\b/g,'\\pi').replace(/\bsqrt\(/g,'\\sqrt{').replace(/\bsin\(/g,'\\sin(')
+    .replace(/\bcos\(/g,'\\cos(').replace(/\btan\(/g,'\\tan(').replace(/\bln\(/g,'\\ln(')
+    .replace(/\blog\(/g,'\\log(').replace(/\*/g,'\\times').replace(/\//g,'\\div');
+}
+
 function updateCalcDisplay() {
   document.getElementById('calcExpr').textContent = calcExprStr || '0';
+  // KaTeX preview
+  const katexWrap = document.getElementById('calcKatex');
+  if (katexWrap && calcExprStr && typeof katex !== 'undefined') {
+    try {
+      katexWrap.innerHTML = katex.renderToString(calcToLatexStr(calcExprStr), {
+        throwOnError: false, displayMode: false, strict: false,
+      });
+    } catch(_) { katexWrap.textContent = ''; }
+  } else if (katexWrap) { katexWrap.textContent = ''; }
+
   if (!calcExprStr) { document.getElementById('calcResult').textContent = ''; return; }
   evalCalcExpr(calcExprStr).then(r => {
     const el = document.getElementById('calcResult');
