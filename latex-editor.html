@@ -5995,12 +5995,23 @@ document.getElementById('sidebar').addEventListener('click', e => {
     var kbHeight = window.innerHeight - vv.offsetTop - vv.height;
     document.body.classList.toggle('keyboard-open', kbHeight > 150);
     if (toggle) {
-      toggle.style.bottom = (16 + Math.max(0, kbHeight)) + 'px';
+      // When the search box is active the iOS "Done" tick sits just above the keyboard.
+      // Add 14px so the ∫ button clears it.
+      var searchActive = document.activeElement && document.activeElement.id === 'searchInput';
+      var extra = (searchActive && kbHeight > 0) ? 14 : 0;
+      toggle.style.bottom = (16 + extra + Math.max(0, kbHeight)) + 'px';
       toggle.style.right  = (16 + Math.max(0, window.innerWidth - vv.offsetLeft - vv.width)) + 'px';
     }
   }
 
-  // Auto-close sidebar whenever any input/textarea is focused (keyboard about to open)
+  // Re-run applyHeight when search box gains/loses focus so the offset kicks in immediately
+  var searchEl = document.getElementById('searchInput');
+  if (searchEl) {
+    searchEl.addEventListener('focus', applyHeight);
+    searchEl.addEventListener('blur',  applyHeight);
+  }
+
+  // Auto-close sidebar whenever any input/textarea outside the sidebar is focused
   document.addEventListener('focusin', function(e) {
     if (!isMobile()) return;
     if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && !sidebar.contains(e.target)) {
@@ -6008,11 +6019,48 @@ document.getElementById('sidebar').addEventListener('click', e => {
     }
   });
 
+  // ── Swipe-down to dismiss sidebar ──────────────────────────────────────────
+  // Only activates when the symbol scroll is at the very top, so normal
+  // list scrolling is never interrupted.
+  (function () {
+    var scroll  = document.querySelector('.sidebar-scroll');
+    var startY  = 0, startScrollTop = 0, dragging = false;
+
+    sidebar.addEventListener('touchstart', function (e) {
+      if (!isMobile() || !sidebar.classList.contains('open')) return;
+      startY         = e.touches[0].clientY;
+      startScrollTop = scroll ? scroll.scrollTop : 0;
+      dragging       = false;
+    }, { passive: true });
+
+    sidebar.addEventListener('touchmove', function (e) {
+      if (!isMobile() || !sidebar.classList.contains('open')) return;
+      var dy = e.touches[0].clientY - startY;
+      // Start drag only when list is at top and finger moves down
+      if (!dragging && dy > 8 && startScrollTop === 0) dragging = true;
+      if (dragging) {
+        sidebar.style.transition = 'none';
+        sidebar.style.transform  = 'translateY(' + Math.max(0, dy) + 'px)';
+      }
+    }, { passive: true });
+
+    sidebar.addEventListener('touchend', function (e) {
+      if (!isMobile() || !dragging) return;
+      var dy = e.changedTouches[0].clientY - startY;
+      sidebar.style.transition = ''; // restore CSS transition
+      if (dy > 80) {
+        // Enough drag — dismiss
+        sidebar.classList.remove('open');
+      }
+      sidebar.style.transform = '';
+      dragging = false;
+    }, { passive: true });
+  })();
+
   window.visualViewport.addEventListener('resize', applyHeight);
   window.visualViewport.addEventListener('scroll', applyHeight);
   window.addEventListener('resize', applyHeight);
 
-  // Expose physical screen dimensions as CSS vars for adaptive sizing
   document.documentElement.style.setProperty('--sw', window.screen.width + 'px');
   document.documentElement.style.setProperty('--sh', window.screen.height + 'px');
   document.documentElement.style.setProperty('--dpr', window.devicePixelRatio);
