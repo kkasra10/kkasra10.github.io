@@ -630,10 +630,12 @@
     .calc-grid {
       flex: 1; display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(8, 1fr);
+      grid-template-rows: repeat(10, 1fr);
       gap: 5px; padding: 8px; background: #f8fafc;
       overflow: hidden; min-height: 0;
     }
+    .cb .katex { font-size: 0.78em !important; pointer-events: none; }
+    .cb .katex-html { pointer-events: none; }
     .cb {
       background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
       color: #374151; font-size: 14px; font-weight: 500; cursor: pointer;
@@ -665,6 +667,7 @@
     body.dark .calc-hist-item { color: #4b5563; }
     body.dark .calc-hist-item:hover { color: #9ca3af; }
     body.dark .calc-grid { background: #111827; }
+    body.dark .cb .katex { color: inherit !important; }
     body.dark .cb { background: #1f2937; border-color: #374151; color: #d1d5db; box-shadow: none; }
     body.dark .cb:hover { background: #374151; }
     body.dark .cb.num { color: #f9fafb; }
@@ -1668,46 +1671,7 @@ exit 2 bottom 500"></textarea>
       </div>
     </div>
     <div class="calc-history" id="calcHistory"></div>
-    <div class="calc-grid">
-      <button class="cb deg" id="calcDegBtn">DEG</button>
-      <button class="cb fn"  data-cv="pi">π</button>
-      <button class="cb fn"  data-cv="e">e</button>
-      <button class="cb clr" data-ca="back">⌫</button>
-
-      <button class="cb fn"  data-cv="sin(">sin</button>
-      <button class="cb fn"  data-cv="cos(">cos</button>
-      <button class="cb fn"  data-cv="tan(">tan</button>
-      <button class="cb fn"  data-cv="^">xⁿ</button>
-
-      <button class="cb fn"  data-cv="ln(">ln</button>
-      <button class="cb fn"  data-cv="log(">log</button>
-      <button class="cb fn"  data-cv="sqrt(">√</button>
-      <button class="cb fn"  data-ca="paren">( )</button>
-
-      <button class="cb clr" data-ca="clear">AC</button>
-      <button class="cb fn"  data-ca="sign">±</button>
-      <button class="cb fn"  data-cv="%">%</button>
-      <button class="cb op"  data-cv="/">÷</button>
-
-      <button class="cb num" data-cv="7">7</button>
-      <button class="cb num" data-cv="8">8</button>
-      <button class="cb num" data-cv="9">9</button>
-      <button class="cb op"  data-cv="*">×</button>
-
-      <button class="cb num" data-cv="4">4</button>
-      <button class="cb num" data-cv="5">5</button>
-      <button class="cb num" data-cv="6">6</button>
-      <button class="cb op"  data-cv="-">−</button>
-
-      <button class="cb num" data-cv="1">1</button>
-      <button class="cb num" data-cv="2">2</button>
-      <button class="cb num" data-cv="3">3</button>
-      <button class="cb op"  data-cv="+">+</button>
-
-      <button class="cb num" data-cv="0" style="grid-column:span 2">0</button>
-      <button class="cb num" data-cv=".">.</button>
-      <button class="cb eq"  data-ca="eval">=</button>
-    </div>
+    <div class="calc-grid" id="calcGrid"></div>
   </div>
 
   <!-- Help modal -->
@@ -4252,8 +4216,9 @@ const waitForKatex = setInterval(() => {
     clearInterval(waitForKatex);
     buildSidebar();
     buildTemplatesPanel();
+    buildCalcGrid();
     applySettings();
-    render(); // re-render after settings/share restore
+    render();
   }
 }, 30);
 
@@ -4823,8 +4788,75 @@ function loadMathJS() {
 
 let calcExprStr = '';
 let calcDegMode = true;
-let calcHistArr = [];
 
+const CALC_BTNS = [
+  // Row 1 – mode / constants / backspace
+  { text:'DEG', ca:'deg', cls:'deg', id:'calcDegBtn' },
+  { lx:'\\pi',        cv:'pi',    cls:'fn' },
+  { lx:'e',           cv:'e',     cls:'fn' },
+  { text:'⌫',         ca:'back',  cls:'clr' },
+  // Row 2 – primary trig
+  { lx:'\\sin',       cv:'sin(',  cls:'fn' },
+  { lx:'\\cos',       cv:'cos(',  cls:'fn' },
+  { lx:'\\tan',       cv:'tan(',  cls:'fn' },
+  { text:'( )',        ca:'paren', cls:'fn' },
+  // Row 3 – inverse trig
+  { lx:'\\sin^{-1}',  cv:'asin(', cls:'fn' },
+  { lx:'\\cos^{-1}',  cv:'acos(', cls:'fn' },
+  { lx:'\\tan^{-1}',  cv:'atan(', cls:'fn' },
+  { lx:'x^n',         cv:'^',     cls:'fn' },
+  // Row 4 – logarithms
+  { lx:'\\ln',        cv:'ln(',   cls:'fn' },
+  { lx:'\\log_{10}',  cv:'log(',  cls:'fn' },
+  { lx:'\\log_2',     cv:'log2(', cls:'fn' },
+  { lx:'x^2',         cv:'^2',    cls:'fn' },
+  // Row 5 – exponentials / roots
+  { lx:'e^x',         cv:'exp(',  cls:'fn' },
+  { lx:'\\sqrt{x}',   cv:'sqrt(', cls:'fn' },
+  { lx:'\\sqrt[3]{x}',cv:'cbrt(', cls:'fn' },
+  { lx:'|x|',         cv:'abs(',  cls:'fn' },
+  // Row 6 – AC / misc
+  { text:'AC',         ca:'clear', cls:'clr' },
+  { text:'±',          ca:'sign',  cls:'fn' },
+  { lx:'n!',           cv:'!',     cls:'fn' },
+  { lx:'\\div',        cv:'/',     cls:'op' },
+  // Rows 7-9 – numpad
+  { text:'7', cv:'7', cls:'num' }, { text:'8', cv:'8', cls:'num' },
+  { text:'9', cv:'9', cls:'num' }, { lx:'\\times', cv:'*', cls:'op' },
+  { text:'4', cv:'4', cls:'num' }, { text:'5', cv:'5', cls:'num' },
+  { text:'6', cv:'6', cls:'num' }, { text:'−', cv:'-', cls:'op' },
+  { text:'1', cv:'1', cls:'num' }, { text:'2', cv:'2', cls:'num' },
+  { text:'3', cv:'3', cls:'num' }, { text:'+', cv:'+', cls:'op' },
+  // Row 10
+  { text:'0', cv:'0', cls:'num', span:2 },
+  { text:'.', cv:'.', cls:'num' },
+  { text:'=', ca:'eval', cls:'eq' },
+];
+
+function buildCalcGrid() {
+  const grid = document.getElementById('calcGrid');
+  grid.innerHTML = '';
+  CALC_BTNS.forEach(def => {
+    const btn = document.createElement('button');
+    btn.className = 'cb ' + def.cls;
+    if (def.id)   btn.id = def.id;
+    if (def.cv !== undefined) btn.dataset.cv = def.cv;
+    if (def.ca)   btn.dataset.ca = def.ca;
+    if (def.span) btn.style.gridColumn = 'span ' + def.span;
+    if (def.lx && typeof katex !== 'undefined') {
+      try {
+        btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false, displayMode:false });
+      } catch(_) { btn.textContent = def.text || def.lx; }
+    } else {
+      btn.textContent = def.text || def.lx || '';
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function calcExtraScope() {
+  return { log2: x => Math.log2(x) };
+}
 function calcDegScope() {
   return {
     sin:  x => Math.sin(x * Math.PI / 180),
@@ -4833,6 +4865,7 @@ function calcDegScope() {
     asin: x => Math.asin(x) * 180 / Math.PI,
     acos: x => Math.acos(x) * 180 / Math.PI,
     atan: x => Math.atan(x) * 180 / Math.PI,
+    log2: x => Math.log2(x),
   };
 }
 
@@ -4840,137 +4873,98 @@ function fmtCalcNum(n) {
   if (typeof n !== 'number' && typeof n !== 'bigint') return String(n);
   if (!isFinite(n)) return n > 0 ? '∞' : '-∞';
   if (Number.isInteger(n) && Math.abs(n) < 1e15) return String(n);
-  const s = parseFloat(n.toPrecision(10));
-  return String(s);
+  return String(parseFloat(n.toPrecision(10)));
 }
 
 async function evalCalcExpr(expr) {
   const m = await loadMathJS();
-  const scope = calcDegMode ? calcDegScope() : {};
-  const result = m.evaluate(expr, scope);
-  return result;
+  return m.evaluate(expr, calcDegMode ? calcDegScope() : calcExtraScope());
 }
 
 function calcToLatexStr(expr) {
   if (!expr) return '';
-  try {
-    if (window.math && window.math.parse) return window.math.parse(expr).toTex({ parenthesis: 'auto' });
-  } catch(_) {}
-  // Lightweight fallback conversion
-  return expr
-    .replace(/\bpi\b/g,'\\pi').replace(/\bsqrt\(/g,'\\sqrt{').replace(/\bsin\(/g,'\\sin(')
-    .replace(/\bcos\(/g,'\\cos(').replace(/\btan\(/g,'\\tan(').replace(/\bln\(/g,'\\ln(')
-    .replace(/\blog\(/g,'\\log(').replace(/\*/g,'\\times').replace(/\//g,'\\div');
+  try { if (window.math && window.math.parse) return window.math.parse(expr).toTex({ parenthesis:'auto' }); } catch(_) {}
+  return expr.replace(/\bpi\b/g,'\\pi').replace(/\bsqrt\(/g,'\\sqrt{')
+    .replace(/\bsin\(/g,'\\sin(').replace(/\bcos\(/g,'\\cos(').replace(/\btan\(/g,'\\tan(')
+    .replace(/\bln\(/g,'\\ln(').replace(/\blog\(/g,'\\log(').replace(/\*/g,'\\cdot').replace(/\//g,'\\div');
 }
 
 function updateCalcDisplay() {
   document.getElementById('calcExpr').textContent = calcExprStr || '0';
-  // KaTeX preview
-  const katexWrap = document.getElementById('calcKatex');
-  if (katexWrap && calcExprStr && typeof katex !== 'undefined') {
-    try {
-      katexWrap.innerHTML = katex.renderToString(calcToLatexStr(calcExprStr), {
-        throwOnError: false, displayMode: false, strict: false,
-      });
-    } catch(_) { katexWrap.textContent = ''; }
-  } else if (katexWrap) { katexWrap.textContent = ''; }
-
+  const kw = document.getElementById('calcKatex');
+  if (kw && calcExprStr && typeof katex !== 'undefined') {
+    try { kw.innerHTML = katex.renderToString(calcToLatexStr(calcExprStr), { throwOnError:false, strict:false }); }
+    catch(_) { kw.textContent = ''; }
+  } else if (kw) { kw.textContent = ''; }
   if (!calcExprStr) { document.getElementById('calcResult').textContent = ''; return; }
   evalCalcExpr(calcExprStr).then(r => {
     const el = document.getElementById('calcResult');
-    el.textContent = fmtCalcNum(r);
-    el.classList.remove('error');
-  }).catch(() => {
-    document.getElementById('calcResult').textContent = '';
-  });
+    el.textContent = fmtCalcNum(r); el.classList.remove('error');
+  }).catch(() => { document.getElementById('calcResult').textContent = ''; });
 }
 
 function addCalcHistItem(expr, result) {
-  calcHistArr.unshift({ expr, result });
-  if (calcHistArr.length > 20) calcHistArr.pop();
   const hist = document.getElementById('calcHistory');
   const item = document.createElement('div');
   item.className = 'calc-hist-item';
-  item.innerHTML = expr.replace(/</g,'&lt;') +
-    '<span class="calc-hist-eq">=</span>' + fmtCalcNum(result);
-  item.addEventListener('click', () => {
-    calcExprStr = fmtCalcNum(result);
-    updateCalcDisplay();
-  });
+  item.innerHTML = expr.replace(/</g,'&lt;') + '<span class="calc-hist-eq">=</span>' + fmtCalcNum(result);
+  item.addEventListener('click', () => { calcExprStr = fmtCalcNum(result); updateCalcDisplay(); });
   hist.insertBefore(item, hist.firstChild);
 }
 
 function openParenCount() {
-  let open = 0;
-  for (const ch of calcExprStr) { if (ch === '(') open++; else if (ch === ')') open--; }
-  return open;
+  let n = 0; for (const c of calcExprStr) { if (c==='(') n++; else if (c===')') n--; } return n;
 }
 
-document.getElementById('calcDegBtn').addEventListener('click', function() {
-  calcDegMode = !calcDegMode;
-  this.textContent = calcDegMode ? 'DEG' : 'RAD';
-  updateCalcDisplay();
-});
-
-document.querySelectorAll('.calc-grid .cb').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const cv = btn.dataset.cv;
-    const ca = btn.dataset.ca;
-    if (cv !== undefined) {
-      if (calcExprStr === '0' && /^\d$/.test(cv)) calcExprStr = cv;
-      else calcExprStr += cv;
-      updateCalcDisplay();
-    } else if (ca) {
-      switch (ca) {
-        case 'clear': calcExprStr = ''; updateCalcDisplay(); break;
-        case 'back':  calcExprStr = calcExprStr.slice(0, -1); updateCalcDisplay(); break;
-        case 'sign':
-          calcExprStr = calcExprStr.startsWith('-') ? calcExprStr.slice(1) : '-' + calcExprStr;
-          updateCalcDisplay(); break;
-        case 'paren':
-          calcExprStr += openParenCount() > 0 ? ')' : '(';
-          updateCalcDisplay(); break;
-        case 'eval':
-          if (!calcExprStr) break;
-          try {
-            const m = await loadMathJS();
-            const scope = calcDegMode ? calcDegScope() : {};
-            const result = m.evaluate(calcExprStr, scope);
-            addCalcHistItem(calcExprStr, result);
-            calcExprStr = fmtCalcNum(result);
-            updateCalcDisplay();
-          } catch(e) {
-            const el = document.getElementById('calcResult');
-            el.textContent = 'Error';
-            el.classList.add('error');
-          }
-          break;
-      }
+// Single delegated listener on the grid
+document.getElementById('calcGrid').addEventListener('click', async e => {
+  const btn = e.target.closest('.cb'); if (!btn) return;
+  const cv = btn.dataset.cv, ca = btn.dataset.ca;
+  if (ca === 'deg') {
+    calcDegMode = !calcDegMode;
+    btn.textContent = calcDegMode ? 'DEG' : 'RAD';
+    updateCalcDisplay(); return;
+  }
+  if (cv !== undefined) {
+    if (calcExprStr === '0' && /^\d$/.test(cv)) calcExprStr = cv; else calcExprStr += cv;
+    updateCalcDisplay();
+  } else if (ca) {
+    switch(ca) {
+      case 'clear': calcExprStr = ''; updateCalcDisplay(); break;
+      case 'back':  calcExprStr = calcExprStr.slice(0, -1); updateCalcDisplay(); break;
+      case 'sign':  calcExprStr = calcExprStr.startsWith('-') ? calcExprStr.slice(1) : '-'+calcExprStr; updateCalcDisplay(); break;
+      case 'paren': calcExprStr += openParenCount() > 0 ? ')' : '('; updateCalcDisplay(); break;
+      case 'eval':
+        if (!calcExprStr) break;
+        try {
+          const m = await loadMathJS();
+          const result = m.evaluate(calcExprStr, calcDegMode ? calcDegScope() : calcExtraScope());
+          addCalcHistItem(calcExprStr, result);
+          calcExprStr = fmtCalcNum(result); updateCalcDisplay();
+        } catch(_) {
+          const el = document.getElementById('calcResult');
+          el.textContent = 'Error'; el.classList.add('error');
+        }
+        break;
     }
-  });
+  }
 });
 
 document.getElementById('calcToLatex').addEventListener('click', () => {
   const result = document.getElementById('calcResult').textContent;
-  const expr = calcExprStr;
-  if (!expr) return;
+  if (!calcExprStr) return;
   const ta = document.getElementById('latexInput');
-  const insert = result || expr;
+  const insert = result || calcExprStr;
   const start = ta.selectionStart;
   ta.value = ta.value.slice(0, start) + insert + ta.value.slice(ta.selectionEnd);
   ta.setSelectionRange(start + insert.length, start + insert.length);
-  setActiveTab('Latex');
-  ta.focus();
-  render();
-  histPush(ta.value);
+  setActiveTab('Latex'); ta.focus(); render(); histPush(ta.value);
 });
 
 document.getElementById('calcWolfram').addEventListener('click', () => {
-  const q = calcExprStr || '1+1';
-  window.open('https://www.wolframalpha.com/input?i=' + encodeURIComponent(q), '_blank');
+  window.open('https://www.wolframalpha.com/input?i=' + encodeURIComponent(calcExprStr || '1+1'), '_blank');
 });
 
-// Load math.js in background when Calc tab first opened
 document.getElementById('tabCalc').addEventListener('click', () => loadMathJS(), { once: true });
 
 // ── Paper: click outside block to close editor ────────────────────────────────
