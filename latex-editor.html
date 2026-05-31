@@ -627,10 +627,29 @@
     }
     .calc-hist-item:hover { color: #374151; }
     .calc-hist-item .calc-hist-eq { color: #d1d5db; margin: 0 4px; }
+    .calc-sym-bar {
+      flex-shrink: 0; display: flex; gap: 5px; padding: 5px 8px;
+      border-bottom: 1.5px solid #e5e7eb; background: #f0f4ff;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    }
+    .calc-sym-bar::-webkit-scrollbar { display: none; }
+    .csb {
+      flex-shrink: 0; padding: 4px 10px; background: #fff;
+      border: 1.5px solid #c4d1f9; border-radius: 7px; color: #3b6ef5;
+      font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+      transition: background 0.1s; display: flex; align-items: center; gap: 3px;
+    }
+    .csb:hover { background: #ebf0fd; }
+    .csb .katex { font-size: 0.95em !important; color: #3b6ef5; pointer-events: none; }
+    .csb.loading { opacity: 0.5; pointer-events: none; }
+    body.dark .calc-sym-bar { background: #1a2332; border-bottom-color: #374151; }
+    body.dark .csb { background: #1f2937; border-color: #2d4a8a; color: #93bbff; }
+    body.dark .csb:hover { background: #1e3a6e; }
+    body.dark .csb .katex { color: #93bbff; }
     .calc-grid {
       flex: 1; display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(10, 1fr);
+      grid-template-rows: repeat(11, 1fr);
       gap: 5px; padding: 8px; background: #f8fafc;
       overflow: hidden; min-height: 0;
     }
@@ -1665,6 +1684,7 @@ exit 2 bottom 500"></textarea>
       </div>
     </div>
     <div class="calc-history" id="calcHistory"></div>
+    <div class="calc-sym-bar" id="calcSymBar"></div>
     <div class="calc-grid" id="calcGrid"></div>
   </div>
 
@@ -4211,6 +4231,7 @@ const waitForKatex = setInterval(() => {
     buildSidebar();
     buildTemplatesPanel();
     buildCalcGrid();
+    buildCalcSymBar();
     applySettings();
     render();
   }
@@ -4809,23 +4830,109 @@ const CALC_BTNS = [
   { lx:'\\sqrt{x}',      cv:'sqrt(', cls:'fn' },
   { lx:'\\sqrt[3]{x}',   cv:'cbrt(', cls:'fn' },
   { lx:'|x|',            cv:'abs(',  cls:'fn' },
-  // Row 6 – AC / misc
+  // Row 6 – hyperbolic
+  { lx:'\\sinh',         cv:'sinh(', cls:'fn' },
+  { lx:'\\cosh',         cv:'cosh(', cls:'fn' },
+  { lx:'\\tanh',         cv:'tanh(', cls:'fn' },
+  { lx:'\\cot',          cv:'cot(',  cls:'fn' },
+  // Row 7 – misc
+  { lx:'\\lfloor x\\rfloor', cv:'floor(', cls:'fn' },
+  { lx:'\\lceil x\\rceil',   cv:'ceil(',  cls:'fn' },
+  { lx:'\\text{round}',      cv:'round(', cls:'fn' },
+  { lx:'x\\!\\mod\\!y',      cv:'%',      cls:'fn' },
+  // Row 8 – AC / sign / factorial / div
   { text:'AC',            ca:'clear', cls:'clr' },
   { lx:'\\pm',           ca:'sign',  cls:'fn' },
   { lx:'n!',             cv:'!',     cls:'fn' },
   { lx:'\\div',          cv:'/',     cls:'op' },
-  // Rows 7–9 – numpad
+  // Rows 9–11 – numpad
   { lx:'7', cv:'7', cls:'num' }, { lx:'8', cv:'8', cls:'num' },
   { lx:'9', cv:'9', cls:'num' }, { lx:'\\times', cv:'*', cls:'op' },
   { lx:'4', cv:'4', cls:'num' }, { lx:'5', cv:'5', cls:'num' },
   { lx:'6', cv:'6', cls:'num' }, { lx:'-',        cv:'-', cls:'op' },
   { lx:'1', cv:'1', cls:'num' }, { lx:'2', cv:'2', cls:'num' },
   { lx:'3', cv:'3', cls:'num' }, { lx:'+',        cv:'+', cls:'op' },
-  // Row 10
   { lx:'0', cv:'0', cls:'num', span:2 },
   { lx:'.',  cv:'.', cls:'num' },
   { lx:'=',  ca:'eval', cls:'eq' },
 ];
+
+const CALC_SYM_BTNS = [
+  { lx:'\\text{Simplify}', op:'simplify' },
+  { lx:'\\text{Factor}',   op:'factor'   },
+  { lx:'\\text{Expand}',   op:'expand'   },
+  { lx:'\\dfrac{d}{dx}',   op:'diff'     },
+  { lx:'\\int dx',         op:'integrate'},
+  { lx:'\\text{Solve }x',  op:'solve'    },
+  { lx:'\\text{Taylor}',   op:'taylor'   },
+  { lx:'\\gcd',            op:'gcd'      },
+];
+
+// ── nerdamer (CAS) ────────────────────────────────────────────────────────────
+let _nerdamer = null;
+function loadNerdamer() {
+  if (_nerdamer) return _nerdamer;
+  _nerdamer = new Promise((res, rej) => {
+    if (window.nerdamer) { res(window.nerdamer); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/all.min.js';
+    s.onload = () => res(window.nerdamer);
+    s.onerror = () => rej(new Error('nerdamer failed to load'));
+    document.head.appendChild(s);
+  });
+  return _nerdamer;
+}
+
+async function applySymbolic(op, btn) {
+  if (!calcExprStr) return;
+  const origHTML = btn.innerHTML;
+  btn.textContent = '…'; btn.classList.add('loading');
+  try {
+    const nd = await loadNerdamer();
+    let result;
+    const e = calcExprStr;
+    switch (op) {
+      case 'simplify':  result = nd('simplify(' + e + ')').toString(); break;
+      case 'factor':    result = nd('factor(' + e + ')').toString(); break;
+      case 'expand':    result = nd('expand(' + e + ')').toString(); break;
+      case 'diff':      result = nd('diff(' + e + ', x)').toString(); break;
+      case 'integrate': result = nd('integrate(' + e + ', x)').toString(); break;
+      case 'solve':     result = nd.solve(e, 'x').toString(); break;
+      case 'taylor':    result = nd('taylor(' + e + ', x, 0, 5)').toString(); break;
+      case 'gcd': {
+        // gcd needs two args: prompt for second
+        const b = prompt('GCD of ' + e + ' and:', 'x^2-1');
+        if (!b) { btn.innerHTML = origHTML; btn.classList.remove('loading'); return; }
+        result = nd('gcd(' + e + ', ' + b + ')').toString(); break;
+      }
+    }
+    if (result) {
+      addCalcHistItem(e + ' [' + op + ']', result);
+      calcExprStr = result; updateCalcDisplay();
+    }
+  } catch(err) {
+    const el = document.getElementById('calcResult');
+    el.textContent = 'Cannot ' + op; el.classList.add('error');
+  } finally {
+    btn.innerHTML = origHTML; btn.classList.remove('loading');
+  }
+}
+
+function buildCalcSymBar() {
+  const bar = document.getElementById('calcSymBar');
+  bar.innerHTML = '';
+  CALC_SYM_BTNS.forEach(def => {
+    const btn = document.createElement('button');
+    btn.className = 'csb';
+    btn.dataset.op = def.op;
+    if (typeof katex !== 'undefined') {
+      try { btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false }); }
+      catch(_) { btn.textContent = def.op; }
+    } else { btn.textContent = def.op; }
+    btn.addEventListener('click', () => applySymbolic(def.op, btn));
+    bar.appendChild(btn);
+  });
+}
 
 function buildCalcGrid() {
   const grid = document.getElementById('calcGrid');
@@ -4849,16 +4956,24 @@ function buildCalcGrid() {
 }
 
 function calcExtraScope() {
-  return { log2: x => Math.log2(x) };
+  return {
+    log2: x => Math.log2(x),
+    cot:  x => 1 / Math.tan(x),
+  };
 }
 function calcDegScope() {
+  const D = Math.PI / 180, R = 180 / Math.PI;
   return {
-    sin:  x => Math.sin(x * Math.PI / 180),
-    cos:  x => Math.cos(x * Math.PI / 180),
-    tan:  x => Math.tan(x * Math.PI / 180),
-    asin: x => Math.asin(x) * 180 / Math.PI,
-    acos: x => Math.acos(x) * 180 / Math.PI,
-    atan: x => Math.atan(x) * 180 / Math.PI,
+    sin:  x => Math.sin(x * D),
+    cos:  x => Math.cos(x * D),
+    tan:  x => Math.tan(x * D),
+    asin: x => Math.asin(x) * R,
+    acos: x => Math.acos(x) * R,
+    atan: x => Math.atan(x) * R,
+    sinh: x => Math.sinh(x * D),
+    cosh: x => Math.cosh(x * D),
+    tanh: x => Math.tanh(x * D),
+    cot:  x => 1 / Math.tan(x * D),
     log2: x => Math.log2(x),
   };
 }
