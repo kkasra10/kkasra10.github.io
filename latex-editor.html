@@ -1334,9 +1334,10 @@
     <div class="align-sep"></div>
     <div class="spacing-slider-wrap">
       <span class="spacing-slider-label">&#8597;</span>
-      <input type="range" class="spacing-slider" id="spacingSlider" min="0" max="48" step="4" value="12">
+      <input type="range" class="spacing-slider" id="spacingSlider" min="0" max="60" step="1" value="12">
     </div>
     <div style="margin-left:auto;display:flex;gap:5px;">
+      <button class="paper-dl-btn" id="latexShareBtn" title="Copy shareable link">&#128279; Share</button>
       <button class="paper-dl-btn" id="latexCopyBtn" title="Copy all LaTeX source">&#10064; Copy LaTeX</button>
       <button class="paper-dl-btn" id="latexCopyImg" title="Copy rendered output to clipboard">&#128203; Copy Image</button>
       <button class="paper-dl-btn" id="latexDlPng"   title="Save output as PNG">&#8659; PNG</button>
@@ -4003,6 +4004,7 @@ const waitForKatex = setInterval(() => {
     buildSidebar();
     buildTemplatesPanel();
     applySettings();
+    render(); // re-render after settings/share restore
   }
 }, 30);
 
@@ -4625,6 +4627,38 @@ async function downloadPaper(fmt) {
 
 document.getElementById('paperDlPng').addEventListener('click', () => downloadPaper('png'));
 document.getElementById('paperDlJpg').addEventListener('click', () => downloadPaper('jpg'));
+
+// ── Share link ────────────────────────────────────────────────────────────────
+document.getElementById('latexShareBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('latexShareBtn');
+  const src = document.getElementById('latexInput').value;
+  if (!src.trim()) { btn.textContent = 'Nothing to share'; setTimeout(() => { btn.innerHTML = '&#128279; Share'; }, 1500); return; }
+  const encoded = btoa(unescape(encodeURIComponent(src)));
+  const url = location.origin + location.pathname + '#share=' + encoded;
+  const orig = btn.innerHTML;
+  try {
+    await navigator.clipboard.writeText(url);
+    btn.textContent = '✓ Link copied!';
+  } catch {
+    prompt('Copy this link:', url);
+    btn.textContent = '✓ Done';
+  }
+  setTimeout(() => { btn.innerHTML = orig; }, 2000);
+});
+
+// On load: restore from share hash
+(function () {
+  const hash = location.hash;
+  if (hash.startsWith('#share=')) {
+    try {
+      const src = decodeURIComponent(escape(atob(hash.slice(7))));
+      const ta = document.getElementById('latexInput');
+      if (ta) { ta.value = src; }
+      // Clear hash so it doesn't persist on reload
+      history.replaceState(null, '', location.pathname);
+    } catch(e) {}
+  }
+})();
 
 // ── LaTeX tab: copy source + save output as image ─────────────────────────────
 document.getElementById('latexCopyBtn').addEventListener('click', async () => {
