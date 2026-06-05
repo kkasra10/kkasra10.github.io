@@ -3114,20 +3114,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Card Suits ────────────────────────────────────────────────────────────
-  {
-    name: 'Card Suits',
-    items: [
-      { cmd: '\\clubsuit',    render: '\\clubsuit'    },
-      { cmd: '\\diamondsuit', render: '\\diamondsuit' },
-      { cmd: '\\heartsuit',   render: '\\heartsuit'   },
-      { cmd: '\\spadesuit',   render: '\\spadesuit'   },
-      { cmd: '\\clubs',       render: '\\clubs'       },
-      { cmd: '\\diamonds',    render: '\\diamonds'    },
-      { cmd: '\\hearts',      render: '\\hearts'      },
-      { cmd: '\\spades',      render: '\\spades'      },
-    ]
-  },
 
   // ── Cancel / Strikethrough ────────────────────────────────────────────────
   {
@@ -3315,15 +3301,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Musical Symbols ───────────────────────────────────────────────────────
-  {
-    name: 'Music',
-    items: [
-      { cmd: '\\flat',                       render: '\\flat' },
-      { cmd: '\\natural',                    render: '\\natural' },
-      { cmd: '\\sharp',                      render: '\\sharp' },
-    ]
-  },
 
   // ── Text Modes ────────────────────────────────────────────────────────────
   {
@@ -3401,19 +3378,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Box Drawing & Tables ──────────────────────────────────────────────────
-  {
-    name: 'Box Drawing',
-    items: [
-      { cmd: '\\begin{array}{|c|c|}\\hline \\\\ \\hline \\end{array}', render: '\\begin{array}{|c|c|}\\hline a & b \\\\\\hline c & d \\\\\\hline\\end{array}', label: 'Array Table' },
-      { cmd: '\\boxed{}',                    render: '\\boxed{A}' },
-      { cmd: '\\fbox{}',                     render: '\\fbox{A}' },
-      { cmd: '\\phantom{}',                  render: '\\text{a} \\phantom{x} \\text{b}' },
-      { cmd: '\\hphantom{}',                 render: '\\text{a} \\hphantom{x} \\text{b}' },
-      { cmd: '\\vphantom{}',                 render: '\\vphantom{X} \\text{b}' },
-      { cmd: '\\smash{}',                    render: '\\smash{A}' },
-    ]
-  },
 
   // ── Fractions & Binomials ─────────────────────────────────────────────────
   {
@@ -3606,21 +3570,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Music Theory & Acoustics ──────────────────────────────────────────────
-  {
-    name: 'Music Theory',
-    items: [
-      { cmd: 'T_n(x)',                       render: 'T_n(x)' },
-      { cmd: 'I(x)',                         render: 'I(x)' },
-      { cmd: '\\{0, 4, 7\\}',                render: '\\{0, 4, 7\\}', label: 'Major Triad Set' },
-      { cmd: '2:1',                          render: '2:1', label: 'Octave Ratio' },
-      { cmd: '3:2',                          render: '3:2', label: 'Perfect 5th Ratio' },
-      { cmd: '\\genfrac{}{}{0pt}{0}{4}{4}',  render: '\\genfrac{}{}{0pt}{0}{4}{4}', label: '4/4 Time' },
-      { cmd: 'C^{\\Delta 7}',                render: 'C^{\\Delta 7}', label: 'Major 7th' },
-      { cmd: 'C^{\\circ}',                   render: 'C^{\\circ}', label: 'Diminished' },
-      { cmd: 'C^{\\varnothing}',             render: 'C^{\\varnothing}', label: 'Half-Diminished' },
-    ]
-  },
 
   // ── Latin Extended ────────────────────────────────────────────────────────
   {
@@ -3660,34 +3609,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Accents++ ─────────────────────────────────────────────────────────────
-  {
-    name: 'Accents++',
-    items: [
-      { cmd: '\\utilde{}',   render: '\\utilde{x}',   label: 'tilde below'  },
-      { cmd: '\\underbar{}', render: '\\underbar{x}', label: 'underbar'     },
-    ]
-  },
-
-  // ── Layout ────────────────────────────────────────────────────────────────
-  {
-    name: 'Layout',
-    items: [
-      { cmd: '\\substack{}',  render: '\\substack{a \\\\ b}',  label: 'substack'  },
-      { cmd: '\\vcenter{}',   render: '\\vcenter{x}',          label: 'vcenter'   },
-      { cmd: '\\rule{}{}',    render: '\\rule{1em}{1pt}',      label: 'rule'      },
-    ]
-  },
-
-  // ── Logos ─────────────────────────────────────────────────────────────────
-  {
-    name: 'Logos',
-    items: [
-      { cmd: '\\KaTeX', render: '\\KaTeX', label: 'KaTeX' },
-      { cmd: '\\LaTeX', render: '\\LaTeX', label: 'LaTeX' },
-      { cmd: '\\TeX',   render: '\\TeX',   label: 'TeX'   },
-    ]
-  },
 
   // ── Environments ──────────────────────────────────────────────────────────
   {
@@ -3755,14 +3676,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Extensible Arrows+ ────────────────────────────────────────────────────
-  {
-    name: 'Ext. Arr+',
-    items: [
-      { cmd: '\\xtwoheadleftarrow{}',  render: '\\xtwoheadleftarrow{x}',  label: '↞ ext'  },
-      { cmd: '\\xtwoheadrightarrow{}', render: '\\xtwoheadrightarrow{x}', label: '↠ ext'  },
-    ]
-  },
 
   // ── Dirac & Set Builder ───────────────────────────────────────────────────
   {
@@ -3811,14 +3724,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Font Extras ───────────────────────────────────────────────────────────
-  {
-    name: 'Font Ext.',
-    items: [
-      { cmd: '\\mathnormal{}', render: '\\mathnormal{ABCabc}', label: 'math normal' },
-      { cmd: '\\pmb{}',        render: '\\pmb{x + y}',         label: "poor man's bold" },
-    ]
-  },
 
   // ── Delimiter Sizing Roles ────────────────────────────────────────────────
   {
@@ -3843,14 +3748,6 @@ const SYMBOLS = [
     ]
   },
 
-  // ── Spacing Extras ────────────────────────────────────────────────────────
-  {
-    name: 'Spacing+',
-    items: [
-      { cmd: '\\nobreakspace',  render: '\\nobreakspace',         label: 'non-break ~'   },
-      { cmd: '\\mathstrut',     render: 'x\\mathstrut y',         label: 'invisible strut' },
-    ]
-  },
 
   // ── TeX Primitives ────────────────────────────────────────────────────────
   {
@@ -4883,6 +4780,11 @@ function setActiveTab(tab) {
   ['panelLatex','panelAnimate','panelPaper','panelCalc'].forEach(id =>
     document.getElementById(id).classList.toggle('hidden', id !== 'panel'+tab)
   );
+  const sb = document.getElementById('sidebar');
+  const tog = document.getElementById('sidebar-toggle');
+  const showSidebar = tab === 'Latex';
+  if (sb) sb.style.display = showSidebar ? '' : 'none';
+  if (tog) tog.style.display = showSidebar ? '' : 'none';
 }
 
 document.getElementById('tabLatex')  .addEventListener('click', () => setActiveTab('Latex'));
@@ -5130,7 +5032,7 @@ function updateCalcDisplay() {
   if (!calcExprStr) { document.getElementById('calcResult').textContent = ''; return; }
   evalCalcExpr(calcExprStr).then(r => {
     const el = document.getElementById('calcResult');
-    el.textContent = String(r); el.classList.remove('error');
+    el.textContent = fmtCalcNum(r); el.classList.remove('error');
   }).catch(() => { document.getElementById('calcResult').textContent = ''; });
 }
 
@@ -5186,7 +5088,7 @@ document.getElementById('calcLayout').addEventListener('click', async e => {
             result = m.evaluate(calcExprStr, calcDegMode ? calcDegScope() : calcExtraScope());
           }
           addCalcHistItem(calcExprStr, result);
-          calcExprStr = String(result); updateCalcDisplay();
+          calcExprStr = fmtCalcNum(result); updateCalcDisplay();
         } catch(_) {
           const el = document.getElementById('calcResult');
           el.textContent = 'Error'; el.classList.add('error');
