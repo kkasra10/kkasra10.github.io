@@ -2229,7 +2229,6 @@ const SYMBOLS = [
       { cmd: "\\text{\\u{}}",  render: "\\text{\\u{a}}"  },
       { cmd: "\\text{\\v{}}",  render: "\\text{\\v{s}}"  },
       { cmd: "\\text{\\H{}}",  render: "\\text{\\H{o}}"  },
-      { cmd: "\\text{ạ}",               render: "\\text{ạ}"              },
       { cmd: "\\underline{\\text{a}}", render: "\\underline{\\text{a}}"  },
       { cmd: "\\widehat{}",            render: "\\widehat{ae}"            },
     ]
@@ -2606,7 +2605,6 @@ const SYMBOLS = [
       { cmd: '\\cdots',         render: '\\cdots'         },
       { cmd: '\\vdots',         render: '\\vdots'         },
       { cmd: '\\ddots',         render: '\\ddots'         },
-      { cmd: '\\text{⋰}',       render: '\\text{⋰}'       },
       { cmd: '\\prime',         render: '\\prime'         },
       { cmd: '\\backslash',     render: '\\backslash'     },
       { cmd: '\\sharp',         render: '\\sharp'         },
@@ -3044,7 +3042,6 @@ const SYMBOLS = [
       { cmd: '\\cdots',                      render: '\\cdots'                      },
       { cmd: '\\vdots',                      render: '\\vdots'                      },
       { cmd: '\\ddots',                      render: '\\ddots'                      },
-      { cmd: '\\text{⋰}',                    render: '\\text{⋰}'                    },
       { cmd: 'a_1, \\ldots, a_n',            render: 'a_1, \\ldots, a_n'            },
       { cmd: 'a_1 + \\cdots + a_n',          render: 'a_1 + \\cdots + a_n'          },
       { cmd: '\\underbrace{a+\\cdots+a}_{n}', render: '\\underbrace{a+\\cdots+a}_{n}'},
@@ -3056,15 +3053,8 @@ const SYMBOLS = [
     name: 'Currency',
     items: [
       { cmd: '\\$',           render: '\\$'           },
-      { cmd: '\\text{€}',     render: '\\text{€}'     },
       { cmd: '\\text{£}',     render: '\\text{£}'     },
       { cmd: '\\yen',         render: '\\yen'         },
-      { cmd: '\\text{₿}',     render: '\\text{₿}'     },
-      { cmd: '\\text{¢}',     render: '\\text{¢}'     },
-      { cmd: '\\text{₹}',     render: '\\text{₹}'     },
-      { cmd: '\\text{₩}',     render: '\\text{₩}'     },
-      { cmd: '\\text{₪}',     render: '\\text{₪}'     },
-      { cmd: '\\text{₫}',     render: '\\text{₫}'     },
     ]
   },
 
@@ -3169,8 +3159,6 @@ const SYMBOLS = [
       { cmd: '\\curlyeqprec',   render: '\\curlyeqprec'   },
       { cmd: '\\curlyeqsucc',   render: '\\curlyeqsucc'   },
       { cmd: '\\backepsilon',   render: '\\backepsilon'   },
-      { cmd: '\\origof',        render: '\\origof'        },
-      { cmd: '\\imageof',       render: '\\imageof'       },
       { cmd: '\\multimap',      render: '\\multimap'      },
     ]
   },
@@ -3280,24 +3268,6 @@ const SYMBOLS = [
       { cmd: '\\beth',           render: '\\beth',           label: 'ב beth'   },
       { cmd: '\\gimel',          render: '\\gimel',          label: 'ג gimel'  },
       { cmd: '\\daleth',         render: '\\daleth',         label: 'ד daleth' },
-      { cmd: '\\text{ה}',        render: '\\text{ה}',        label: 'ה he'     },
-      { cmd: '\\text{ו}',        render: '\\text{ו}',        label: 'ו vav'    },
-      { cmd: '\\text{ז}',        render: '\\text{ז}',        label: 'ז zayin'  },
-      { cmd: '\\text{ח}',        render: '\\text{ח}',        label: 'ח chet'   },
-      { cmd: '\\text{ט}',        render: '\\text{ט}',        label: 'ט tet'    },
-      { cmd: '\\text{י}',        render: '\\text{י}',        label: 'י yod'    },
-      { cmd: '\\text{כ}',        render: '\\text{כ}',        label: 'כ kaf'    },
-      { cmd: '\\text{ל}',        render: '\\text{ל}',        label: 'ל lamed'  },
-      { cmd: '\\text{מ}',        render: '\\text{מ}',        label: 'מ mem'    },
-      { cmd: '\\text{נ}',        render: '\\text{נ}',        label: 'נ nun'    },
-      { cmd: '\\text{ס}',        render: '\\text{ס}',        label: 'ס samech' },
-      { cmd: '\\text{ע}',        render: '\\text{ע}',        label: 'ע ayin'   },
-      { cmd: '\\text{פ}',        render: '\\text{פ}',        label: 'פ pe'     },
-      { cmd: '\\text{צ}',        render: '\\text{צ}',        label: 'צ tsadi'  },
-      { cmd: '\\text{ק}',        render: '\\text{ק}',        label: 'ק qof'    },
-      { cmd: '\\text{ר}',        render: '\\text{ר}',        label: 'ר resh'   },
-      { cmd: '\\text{ש}',        render: '\\text{ש}',        label: 'ש shin'   },
-      { cmd: '\\text{ת}',        render: '\\text{ת}',        label: 'ת tav'    },
     ]
   },
 
@@ -3658,8 +3628,6 @@ const SYMBOLS = [
       { cmd: '\\dotsm',        render: '\\dotsm',        label: 'for mult'      },
       { cmd: '\\dotso',        render: '\\dotso',        label: 'other'         },
       { cmd: '\\mathellipsis', render: '\\mathellipsis', label: 'math …'        },
-      { cmd: '\\text{⋰}',      render: '\\text{⋰}',      label: '⋰ rising dots' },
-      { cmd: 'a^{a^{a^{\\text{⋰}}}}', render: 'a^{a^{a^{\\text{⋰}}}}', label: 'power tower' },
     ]
   },
 
@@ -4488,14 +4456,6 @@ const PB_LABELS = {
   proof: 'Proof', corollary: 'Corollary', proposition: 'Proposition',
   remark: 'Remark', example: 'Example', equation: 'Equation', text: 'Text'
 };
-
-function pbCounter(type) {
-  const numbered = ['theorem','definition','lemma','corollary','proposition','example','equation'];
-  if (!numbered.includes(type)) return '';
-  let n = 0;
-  for (const b of paperBlocks) { if (b.type === type) n++; }
-  return ' ' + n;
-}
 
 // A line is "text-like" if it contains plain English words (3+ letter tokens not starting with \)
 function pbHasPlainText(line) {
