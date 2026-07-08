@@ -654,7 +654,7 @@
       -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
       border-right: 1.5px solid #e5e7eb; background: #f9fafb;
       display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 3px; padding: 4px; align-content: start;
+      gap: 3px; padding: 4px; align-content: stretch; grid-auto-rows: minmax(38px, 1fr);
     }
     .calc-fns-col::-webkit-scrollbar { display: none; }
     /* right: main number pad */
@@ -4802,6 +4802,15 @@ const CALC_FN_BTNS = [
   { lx:'\\lfloor x\\rfloor', cv:'floor(',cls:'fn' },
   { lx:'\\lceil x\\rceil',   cv:'ceil(', cls:'fn' },
   { lx:'\\text{round}',      cv:'round(',cls:'fn' },
+  { lx:'\\sec',              cv:'sec(',  cls:'fn' },
+  { lx:'\\csc',              cv:'csc(',  cls:'fn' },
+  { lx:'\\Gamma',            cv:'gamma(',cls:'fn' },
+  { lx:'10^x',               cv:'10^',   cls:'fn' },
+  { lx:'\\bmod',             cv:' mod ', cls:'fn' },
+  { lx:'{}^nC_r',            cv:'combinations(', cls:'fn' },
+  { lx:'{}^nP_r',            cv:'permutations(', cls:'fn' },
+  { lx:'\\gcd',              cv:'gcd(',  cls:'fn' },
+  { lx:'\\text{lcm}',        cv:'lcm(',  cls:'fn' },
 ];
 
 // Right main pad — everyday use
@@ -4859,6 +4868,16 @@ function loadNerdamer() {
   return _nerdamer;
 }
 
+// Pick the variable to differentiate/integrate/solve against.
+// Prefers x, then y, n, t, a, k — matched as standalone letters so the
+// 'n' inside "sin" or 'a' inside "tan" is never picked up.
+function calcMainVar(e) {
+  for (const v of ['x','y','n','t','a','k']) {
+    if (new RegExp('(?<![A-Za-z])' + v + '(?![A-Za-z])').test(e)) return v;
+  }
+  return 'x';
+}
+
 async function applySymbolic(op, btn) {
   if (!calcExprStr) return;
   const origHTML = btn.innerHTML;
@@ -4867,14 +4886,15 @@ async function applySymbolic(op, btn) {
     const nd = await loadNerdamer();
     let result;
     const e = calcExprStr;
+    const v = calcMainVar(e);
     switch (op) {
       case 'simplify':  result = nd('simplify(' + e + ')').toString(); break;
       case 'factor':    result = nd('factor(' + e + ')').toString(); break;
       case 'expand':    result = nd('expand(' + e + ')').toString(); break;
-      case 'diff':      result = nd('diff(' + e + ', x)').toString(); break;
-      case 'integrate': result = nd('integrate(' + e + ', x)').toString(); break;
-      case 'solve':     result = nd.solve(e, 'x').toString(); break;
-      case 'taylor':    result = nd('taylor(' + e + ', x, 0, 5)').toString(); break;
+      case 'diff':      result = nd('diff(' + e + ', ' + v + ')').toString(); break;
+      case 'integrate': result = nd('integrate(' + e + ', ' + v + ')').toString(); break;
+      case 'solve':     result = nd.solve(e, v).toString(); break;
+      case 'taylor':    result = nd('taylor(' + e + ', ' + v + ', 0, 5)').toString(); break;
       case 'gcd': {
         // gcd needs two args: prompt for second
         const b = prompt('GCD of ' + e + ' and:', 'x^2-1');
@@ -4935,6 +4955,8 @@ function calcExtraScope() {
   return {
     log2: x => Math.log2(x),
     cot:  x => 1 / Math.tan(x),
+    sec:  x => 1 / Math.cos(x),
+    csc:  x => 1 / Math.sin(x),
   };
 }
 function calcDegScope() {
@@ -4950,6 +4972,8 @@ function calcDegScope() {
     cosh: x => Math.cosh(x * D),
     tanh: x => Math.tanh(x * D),
     cot:  x => 1 / Math.tan(x * D),
+    sec:  x => 1 / Math.cos(x * D),
+    csc:  x => 1 / Math.sin(x * D),
     log2: x => Math.log2(x),
   };
 }
