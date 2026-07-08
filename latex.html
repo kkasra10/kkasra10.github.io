@@ -3956,8 +3956,29 @@ function insertCommand(cmd) {
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
+// KaTeX doesn't implement every amsmath/IEEE environment. Rewrite the
+// unsupported ones to the closest supported equivalent so they render
+// instead of throwing "No such environment".
+function normalizeLatexEnvs(src) {
+  // IEEEeqnarray takes a mandatory column-spec argument (e.g. {rCl}) — drop it.
+  src = src
+    .replace(/\\begin\{IEEEeqnarray\*?\}[ \t]*(?:\{[^}]*\}|\[[^\]]*\])?/g, '\\begin{aligned}')
+    .replace(/\\end\{IEEEeqnarray\*?\}/g, '\\end{aligned}');
+  const ENV_MAP = {
+    'equation*': 'aligned',
+    'multline':  'gathered',
+    'multline*': 'gathered',
+    'eqnarray':  'aligned',
+    'eqnarray*': 'aligned',
+    'flalign':   'aligned',
+    'flalign*':  'aligned',
+  };
+  return src.replace(/\\(begin|end)\{([a-zA-Z]+\*?)\}/g,
+    (m, be, env) => ENV_MAP[env] ? '\\' + be + '{' + ENV_MAP[env] + '}' : m);
+}
+
 function renderLatex(src) {
-  return katex.renderToString(src, {
+  return katex.renderToString(normalizeLatexEnvs(src), {
     throwOnError: false, displayMode: true, strict: false, errorColor: '#ef4444',
   });
 }
