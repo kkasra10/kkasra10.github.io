@@ -1575,7 +1575,7 @@
       dir="auto"
     ></textarea>
     <div class="input-hint">
-      <span>Each line renders separately.</span>
+      <span>Each line renders separately; <code>\begin{}…\end{}</code> spans multiple lines.</span>
       <span><span class="hint-key">Click</span> symbol to insert at cursor.</span>
     </div>
   </div>
@@ -3975,6 +3975,33 @@ function parseLineDirectives(line) {
   return { clean, align, gap };
 }
 
+// Render one block (a single physical line, or a multi-line environment
+// span) into its own output-line div.
+function renderBlock(line, output) {
+  const { clean, align, gap } = parseLineDirectives(line);
+  const effectiveAlign = align || halignState;
+  const div = document.createElement('div');
+  div.className = 'output-line' + (effectiveAlign !== 'center' ? ' halign-' + effectiveAlign : '');
+  if (gap) div.style.marginTop = gap + 'px';
+  if (!clean) {
+    div.style.height = (div.style.marginTop ? '0' : '20px');
+  } else if (!clean.includes('\n') && clean.includes('||')) {
+    const idx = clean.indexOf('||');
+    const left  = clean.slice(0, idx).trim();
+    const right = clean.slice(idx + 2).trim();
+    div.style.cssText = (gap ? 'margin-top:'+gap+'px;' : '') + 'display:flex; justify-content:space-between; align-items:center; width:100%;';
+    const leftEl  = document.createElement('div');
+    const rightEl = document.createElement('div');
+    if (left)  leftEl.innerHTML  = renderLatex(left);
+    if (right) rightEl.innerHTML = renderLatex(right);
+    div.appendChild(leftEl);
+    div.appendChild(rightEl);
+  } else {
+    div.innerHTML = renderLatex(clean);
+  }
+  output.appendChild(div);
+}
+
 function render() {
   const input  = document.getElementById('latexInput').value;
   const output = document.getElementById('output');
@@ -3982,32 +4009,32 @@ function render() {
     output.innerHTML = '<span class="placeholder-text">Start typing to render LaTeX…</span>';
     return;
   }
-  const lines = input.split('\n');
+  const rawLines = input.split('\n');
   output.innerHTML = '';
-  lines.forEach(line => {
-    const { clean, align, gap } = parseLineDirectives(line);
-    const effectiveAlign = align || halignState;
-    const div = document.createElement('div');
-    div.className = 'output-line' + (effectiveAlign !== 'center' ? ' halign-' + effectiveAlign : '');
-    if (gap) div.style.marginTop = gap + 'px';
-    if (!clean) {
-      div.style.height = (div.style.marginTop ? '0' : '20px');
-    } else if (clean.includes('||')) {
-      const idx = clean.indexOf('||');
-      const left  = clean.slice(0, idx).trim();
-      const right = clean.slice(idx + 2).trim();
-      div.style.cssText = (gap ? 'margin-top:'+gap+'px;' : '') + 'display:flex; justify-content:space-between; align-items:center; width:100%;';
-      const leftEl  = document.createElement('div');
-      const rightEl = document.createElement('div');
-      if (left)  leftEl.innerHTML  = renderLatex(left);
-      if (right) rightEl.innerHTML = renderLatex(right);
-      div.appendChild(leftEl);
-      div.appendChild(rightEl);
+
+  for (let i = 0; i < rawLines.length; ) {
+    const line = rawLines[i];
+    const begin = line.match(/\\begin\{([^}]+)\}/);
+    const closedHere = begin && line.includes('\\end{' + begin[1] + '}');
+
+    if (begin && !closedHere) {
+      // Multi-line environment: keep consuming lines (handling nesting)
+      // until the \begin/\end count balances, then render as one block.
+      let depth = 0, j = i;
+      const buf = [];
+      for (; j < rawLines.length; j++) {
+        const l = rawLines[j];
+        depth += (l.match(/\\begin\{/g) || []).length - (l.match(/\\end\{/g) || []).length;
+        buf.push(l);
+        if (depth <= 0) break;
+      }
+      renderBlock(buf.join('\n'), output);
+      i = j + 1;
     } else {
-      div.innerHTML = renderLatex(clean);
+      renderBlock(line, output);
+      i++;
     }
-    output.appendChild(div);
-  });
+  }
 }
 
 // ── i18n translations ─────────────────────────────────────────────────────────
