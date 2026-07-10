@@ -13,6 +13,253 @@
 </script>
 
   <style>
+    /* ── Restored: app CSS that was lost during KaTeX upgrade ── */
+    /* ── Alignment toolbar ─────────────────────────────────────────────────── */
+    .align-toolbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 5px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+    .align-toolbar-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #9ca3af; margin-right: 4px; white-space: nowrap;
+    }
+    .align-sep { width: 1px; height: 16px; background: #e5e7eb; margin: 0 5px; }
+    .align-btn {
+      width: 26px; height: 22px; border: 1.5px solid transparent;
+      border-radius: 5px; background: transparent; cursor: pointer;
+      font-size: 13px; display: flex; align-items: center; justify-content: center;
+      color: #9ca3af; transition: all .1s;
+    }
+    .align-btn:hover { background: #e5e7eb; color: #374151; }
+    .align-btn.active { background: #dde6fc; border-color: #c4d1f9; color: #3b6ef5; }
+
+    /* Output alignment variants */
+    #output.valign-top    { justify-content: flex-start; }
+    #output.valign-bottom { justify-content: flex-end;   }
+    .output-line.halign-left  { justify-content: flex-start !important; }
+    .output-line.halign-right { justify-content: flex-end  !important; }
+
+    /* ── Paper panel ────────────────────────────────────────────────────────── */
+    .paper-doc-area {
+      flex: 1; overflow-y: auto; padding: 36px 40px;
+      background: #3a3f4b; min-height: 0;
+    }
+    .paper-doc-area::-webkit-scrollbar { width: 6px; }
+    .paper-doc-area::-webkit-scrollbar-thumb { background: #5a6070; border-radius: 4px; }
+
+    .paper-doc {
+      max-width: 760px; margin: 0 auto; background: #fff;
+      box-shadow: 0 8px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
+      border-radius: 3px; padding: 64px 72px 72px;
+    }
+
+    .paper-block {
+      position: relative; border-radius: 6px; margin-bottom: 0; padding: 6px 8px;
+      transition: outline .1s; cursor: pointer;
+    }
+    .paper-block:hover { outline: 1.5px solid #e5e7eb; }
+    .paper-block.pb-focused { outline: 2px solid #3b6ef5 !important; }
+
+    .paper-block-actions {
+      position: absolute; top: 4px; right: 4px; display: none;
+      gap: 3px; z-index: 10;
+    }
+    .paper-block:hover .paper-block-actions,
+    .paper-block.pb-focused .paper-block-actions { display: flex; }
+    .pb-action-btn {
+      width: 20px; height: 20px; border: 1px solid #e5e7eb; border-radius: 4px;
+      background: rgba(255,255,255,.95); font-size: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #6b7280; transition: background .1s, color .1s;
+    }
+    .pb-action-btn:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .pb-action-btn.move:hover { background: #ebf0fd; border-color: #c4d1f9; color: #3b6ef5; }
+
+    /* Block rendered styles */
+    .pb-title-render  { font-family: Georgia,serif; font-size: 26px; font-weight: 700; color: #111827; text-align: center; margin: 0 0 6px; }
+    .pb-author-render { font-family: Georgia,serif; font-size: 15px; font-style: italic; color: #374151; text-align: center; margin: 0 0 3px; }
+    .pb-date-render   { font-family: Georgia,serif; font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 12px; }
+    .pb-abstract-wrap { margin: 16px 48px; }
+    .pb-abstract-heading { font-family: Georgia,serif; font-size: 13px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; text-align: center; margin-bottom: 8px; color: #374151; }
+    .pb-abstract-body { font-family: Georgia,serif; font-size: 14px; color: #374151; line-height: 1.8; }
+    .pb-divider { border: none; border-top: 1px solid #d1d5db; margin: 18px 0; }
+
+    .pb-section-num  { font-family: Georgia,serif; font-size: 18px; font-weight: 700; color: #111827; margin: 22px 0 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .pb-subsec-num   { font-family: Georgia,serif; font-size: 16px; font-weight: 700; color: #1f2937; margin: 14px 0 6px; }
+
+    .pb-env-label    { font-family: Georgia,serif; font-size: 14.5px; font-weight: 700; font-style: normal; color: #111827; }
+    .pb-env-title    { font-family: Georgia,serif; font-size: 14.5px; font-style: italic; color: #374151; }
+    .pb-env-content  { font-family: Georgia,serif; font-size: 14.5px; font-style: italic; color: #1f2937; line-height: 1.8; margin-top: 4px; padding-left: 18px; }
+    .pb-env-content.normal-style { font-style: normal; }
+    .pb-proof-end    { text-align: right; font-size: 16px; color: #374151; line-height: 1; margin-top: 4px; }
+
+    .pb-text-body    { font-family: Georgia,serif; font-size: 13.5px; color: #1f2937; line-height: 1.8; }
+    .pb-eq-wrap      { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .pb-eq-content   { flex: 1; text-align: center; }
+    .pb-eq-num       { font-family: Georgia,serif; font-size: 12.5px; color: #6b7280; white-space: nowrap; }
+
+    /* inline katex sizing within paper */
+    .pb-env-content .katex   { font-size: 1em; }
+    .pb-text-body .katex     { font-size: 1em; }
+    .pb-abstract-body .katex { font-size: 1em; }
+    .pb-env-content .katex-display { margin: 6px 0; }
+    .pb-text-body .katex-display   { margin: 6px 0; }
+
+    /* Block editor textarea shown when focused */
+    .pb-editor-row { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .pb-editor-input {
+      width: 100%; min-height: 52px; max-height: 160px; padding: 7px 10px;
+      border: 1.5px solid #c4d1f9; border-radius: 6px;
+      font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; color: #111827;
+      background: #f8f9ff; resize: vertical; outline: none;
+    }
+    .pb-title-input {
+      width: 100%; padding: 4px 8px; border: 1.5px solid #c4d1f9; border-radius: 5px;
+      font-size: 12px; font-family: 'SF Mono',monospace; color: #111827;
+      background: #f8f9ff; outline: none;
+    }
+
+    /* Paper controls bar */
+    .paper-controls-bar {
+      flex-shrink: 0; border-top: 1.5px solid #e5e7eb;
+      background: #f9fafb; padding: 8px 18px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .paper-type-picker { display: flex; gap: 4px; flex-wrap: wrap; }
+    .paper-ctrl-btn {
+      padding: 4px 11px; font-size: 10.5px; font-weight: 600;
+      border: 1.5px solid #e5e7eb; border-radius: 6px;
+      background: #fff; color: #374151; cursor: pointer;
+      transition: background .1s, border-color .1s; white-space: nowrap;
+    }
+    .paper-ctrl-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .paper-ctrl-btn.primary { border-color: #86efac; background: rgba(240,253,244,.9); color: #166534; }
+    .paper-ctrl-btn.primary:hover { background: #dcfce7; }
+    .paper-type-sep { font-size: 10px; color: #d1d5db; align-self: center; }
+
+
+    /* ── Paper block accent borders ───────────────────────────────────────── */
+    .paper-block { border-left: 3px solid transparent; padding-left: 10px; }
+    .pb-accent-abstract    { border-left-color: #8b5cf6; }
+    .pb-accent-section     { border-left-color: #3b6ef5; }
+    .pb-accent-subsection  { border-left-color: #93c5fd; }
+    .pb-accent-theorem     { border-left-color: #3b6ef5; background: #f8faff; }
+    .pb-accent-definition  { border-left-color: #f97316; background: #fffbf5; }
+    .pb-accent-lemma       { border-left-color: #0891b2; background: #f0fbff; }
+    .pb-accent-proof       { border-left-color: #16a34a; background: #f7fdf9; }
+    .pb-accent-corollary   { border-left-color: #7c3aed; background: #faf7ff; }
+    .pb-accent-proposition { border-left-color: #db2777; background: #fff7fb; }
+    .pb-accent-remark      { border-left-color: #b45309; background: #fffdf5; }
+    .pb-accent-example     { border-left-color: #059669; background: #f5fff9; }
+    .pb-accent-equation    { border-left-color: #4f46e5; background: #f7f8ff; }
+
+    /* Type badge inside block */
+    .pb-type-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 9px; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: #fff;
+      padding: 1px 7px; border-radius: 20px; margin-bottom: 5px;
+      font-family: -apple-system, sans-serif;
+    }
+
+    /* Paper welcome screen */
+    .paper-welcome {
+      text-align: center; padding: 50px 20px;
+      font-family: Georgia, serif;
+    }
+    .paper-welcome-emoji { font-size: 44px; margin-bottom: 12px; }
+    .paper-welcome-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+    .paper-welcome-sub   { font-size: 14px; color: #6b7280; line-height: 1.6; max-width: 340px; margin: 0 auto 22px; }
+    .paper-welcome-hint  {
+      display: flex; flex-direction: column; gap: 6px; align-items: center;
+    }
+    .paper-welcome-hint-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #374151; background: #f9fafb;
+      border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 14px;
+    }
+
+    /* Prettier Add Block button */
+    #paperAddBtn {
+      background: linear-gradient(135deg, #3b6ef5, #7c3aed) !important;
+      color: #fff !important; border-color: transparent !important;
+      font-size: 12px !important; padding: 6px 16px !important;
+      box-shadow: 0 2px 8px rgba(59,110,245,.3);
+    }
+    #paperAddBtn:hover { opacity: .92; box-shadow: 0 3px 12px rgba(59,110,245,.4); }
+
+    /* Colored type picker buttons */
+    .paper-ctrl-btn[data-ptype="theorem"]     { border-color: #bfdbfe; color: #1d4ed8; background: #eff6ff; }
+    .paper-ctrl-btn[data-ptype="definition"]  { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+    .paper-ctrl-btn[data-ptype="lemma"]       { border-color: #a5f3fc; color: #0e7490; background: #ecfeff; }
+    .paper-ctrl-btn[data-ptype="proof"]       { border-color: #bbf7d0; color: #15803d; background: #f0fdf4; }
+    .paper-ctrl-btn[data-ptype="corollary"]   { border-color: #ddd6fe; color: #6d28d9; background: #f5f3ff; }
+    .paper-ctrl-btn[data-ptype="proposition"] { border-color: #fbcfe8; color: #be185d; background: #fdf2f8; }
+    .paper-ctrl-btn[data-ptype="remark"]      { border-color: #fde68a; color: #92400e; background: #fffbeb; }
+    .paper-ctrl-btn[data-ptype="example"]     { border-color: #a7f3d0; color: #065f46; background: #ecfdf5; }
+    .paper-ctrl-btn[data-ptype="equation"]    { border-color: #c7d2fe; color: #3730a3; background: #eef2ff; }
+    .paper-ctrl-btn[data-ptype="section"]     { border-color: #bfdbfe; color: #1e40af; background: #eff6ff; font-weight:700; }
+    .paper-ctrl-btn[data-ptype="title"]       { font-weight: 700; }
+
+    /* Colored env labels */
+    .pb-env-label.color-theorem     { color: #1d4ed8; }
+    .pb-env-label.color-definition  { color: #c2410c; }
+    .pb-env-label.color-lemma       { color: #0e7490; }
+    .pb-env-label.color-corollary   { color: #6d28d9; }
+    .pb-env-label.color-proposition { color: #be185d; }
+    .pb-env-label.color-remark      { color: #92400e; }
+    .pb-env-label.color-example     { color: #065f46; }
+    .pb-proof-label { color: #15803d; font-style: italic; font-weight: 700; font-family: Georgia,serif; font-size: 13.5px; }
+
+    /* Nicer paper doc shadow */
+    .paper-doc { box-shadow: 0 8px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25); }
+
+    /* Preview / edit toggle bar */
+    .paper-topbar {
+      flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; background: #2c313d;
+      border-bottom: 1px solid #1e2330;
+    }
+    .paper-mode-btn {
+      padding: 3px 14px; font-size: 11px; font-weight: 600;
+      border: 1.5px solid #4b5563; border-radius: 5px;
+      background: transparent; color: #9ca3af; cursor: pointer;
+      transition: background .1s, color .1s, border-color .1s;
+    }
+    .paper-mode-btn.active { background: #fff; color: #1f2937; border-color: #fff; }
+    .paper-mode-btn:not(.active):hover { border-color: #6b7280; color: #d1d5db; }
+    .paper-dl-btn {
+      padding: 3px 12px; font-size: 11px; font-weight: 600;
+      border: 1.5px solid #4b5563; border-radius: 5px;
+      background: transparent; color: #9ca3af; cursor: pointer;
+      transition: color .1s, border-color .1s; white-space: nowrap;
+    }
+    .paper-dl-btn:hover { border-color: #60a5fa; color: #60a5fa; }
+    .paper-dl-sep { margin-left: auto; }
+
+    /* Preview mode hides all editing chrome */
+    .paper-doc.preview-mode .paper-block-actions { display: none !important; }
+    .paper-doc.preview-mode .paper-block:hover { outline: none !important; }
+    .paper-doc.preview-mode .paper-block.pb-focused { outline: none !important; }
+    .paper-doc.preview-mode .pb-editor-row { display: none !important; }
+    .paper-doc.preview-mode .pb-type-badge { display: none !important; }
+    .paper-doc.preview-mode .pb-env-label,
+    .paper-doc.preview-mode .pb-env-label[class*="color-"] { color: #111827 !important; }
+    .paper-doc.preview-mode .paper-block {
+      cursor: default;
+      border-left: none !important;
+      background: transparent !important;
+      padding: 2px 0 !important;
+      border-radius: 0 !important;
+    }
+
+
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
