@@ -1330,11 +1330,12 @@
     .sc-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .sc-empty { font-size: 10px; color: #9ca3af; text-align: center; padding: 10px 0; }
     .sc-item {
-      display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px;
-      border: 1.5px solid #e5e7eb; border-radius: 7px; padding: 5px 8px; background: #fafafa;
+      display: grid; grid-template-columns: 96px 1fr auto; align-items: center; gap: 5px;
+      border: 1.5px solid #e5e7eb; border-radius: 7px; padding: 4px 6px; background: #fafafa;
     }
-    .sc-item-trig { font-size: 11px; font-weight: 700; color: #3b6ef5; font-family: 'SF Mono','Fira Code',monospace; white-space: nowrap; }
-    .sc-item-repl { font-size: 9.5px; color: #6b7280; font-family: 'SF Mono','Fira Code',monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sc-item .sc-input { padding: 3px 6px; font-size: 10.5px; }
+    .sc-edit-trig { color: #3b6ef5; font-weight: 700; }
+    .sc-edit-repl { color: #4b5563; }
     .sc-del { border: none; background: transparent; color: #dc2626; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
     .sc-del:hover { color: #991b1b; }
     .sc-io { display: flex; gap: 5px; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px; }
@@ -4379,18 +4380,51 @@ function applyShortcuts(src) {
 
 function scRerender() { render(); autoSaveInput(document.getElementById('latexInput').value); }
 
+function showScErr(msg, color) {
+  const e = document.getElementById('scErr');
+  if (!e) return;
+  e.style.color = color || '';
+  e.textContent = msg;
+  if (msg) setTimeout(() => { if (e.textContent === msg) { e.textContent = ''; e.style.color = ''; } }, 2500);
+}
+
 function renderShortcutList() {
   const listEl = document.getElementById('scList');
   if (!listEl) return;
   const list = getShortcuts();
   listEl.innerHTML = '';
   if (!list.length) { listEl.innerHTML = '<div class="sc-empty">No shortcuts yet. Add one above.</div>'; return; }
-  list.forEach(s => {
+  list.forEach((s, idx) => {
     const row = document.createElement('div'); row.className = 'sc-item';
-    const trig = document.createElement('div'); trig.className = 'sc-item-trig'; trig.textContent = s.trigger;
-    const repl = document.createElement('div'); repl.className = 'sc-item-repl'; repl.textContent = s.replacement; repl.title = s.replacement;
+    const trig = document.createElement('input');
+    trig.className = 'sc-input sc-edit-trig'; trig.value = s.trigger; trig.spellcheck = false;
+    trig.autocomplete = 'off'; trig.title = 'Trigger — edit and press Enter';
+    const repl = document.createElement('input');
+    repl.className = 'sc-input sc-edit-repl'; repl.value = s.replacement; repl.spellcheck = false;
+    repl.autocomplete = 'off'; repl.title = s.replacement;
     const del = document.createElement('button'); del.className = 'sc-del'; del.textContent = '×'; del.title = 'Delete';
-    del.addEventListener('click', () => { saveShortcuts(getShortcuts().filter(x => x.trigger !== s.trigger)); renderShortcutList(); scRerender(); });
+
+    // Edit the trigger in place (reject empty / duplicate of another row).
+    const commitTrig = () => {
+      const cur = getShortcuts(); const v = trig.value.trim();
+      if (!v) { trig.value = cur[idx].trigger; return; }
+      if (v !== cur[idx].trigger && cur.some((x, i) => i !== idx && x.trigger === v)) {
+        showScErr('“' + v + '” already exists.'); trig.value = cur[idx].trigger; return;
+      }
+      if (v !== cur[idx].trigger) { cur[idx].trigger = v; saveShortcuts(cur); scRerender(); }
+    };
+    // Edit the replacement LaTeX in place.
+    const commitRepl = () => {
+      const cur = getShortcuts(); const v = repl.value;
+      if (!v.trim()) { repl.value = cur[idx].replacement; return; }
+      if (v !== cur[idx].replacement) { cur[idx].replacement = v; repl.title = v; saveShortcuts(cur); scRerender(); }
+    };
+    trig.addEventListener('blur', commitTrig);
+    trig.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); trig.blur(); } });
+    repl.addEventListener('blur', commitRepl);
+    repl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); repl.blur(); } });
+    del.addEventListener('click', () => { const cur = getShortcuts(); cur.splice(idx, 1); saveShortcuts(cur); renderShortcutList(); scRerender(); });
+
     row.append(trig, repl, del);
     listEl.appendChild(row);
   });
