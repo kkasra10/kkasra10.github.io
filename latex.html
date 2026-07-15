@@ -1308,6 +1308,49 @@
     body.dark .templates-panel { background: #1f2937; border-color: #374151; }
     body.dark .tpl-card { background: #111827; border-color: #374151; }
     body.dark .tpl-card:hover { background: #1e3a5f; border-color: #2d4a7a; }
+
+    /* ── Shortcuts panel ── */
+    .shortcuts-panel { display: block; width: 340px; left: auto; right: 0; }
+    html[dir=rtl] .shortcuts-panel { right: auto; left: 0; }
+    .sc-title { font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 2px; }
+    .sc-hint  { font-size: 9.5px; color: #9ca3af; margin-bottom: 8px; line-height: 1.4; }
+    .sc-addrow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 5px; margin-bottom: 6px; }
+    .sc-input {
+      border: 1.5px solid #e5e7eb; border-radius: 6px; padding: 5px 7px;
+      font-size: 11px; font-family: 'SF Mono','Fira Code',monospace; color: #111827;
+      background: #fafafa; outline: none; min-width: 0;
+    }
+    .sc-input:focus { border-color: #3b6ef5; background: #fff; }
+    .sc-add-btn {
+      border: none; border-radius: 6px; padding: 0 11px; font-size: 12px; font-weight: 700;
+      background: #3b6ef5; color: #fff; cursor: pointer;
+    }
+    .sc-add-btn:hover { background: #2d5be0; }
+    .sc-err { font-size: 9.5px; color: #dc2626; margin-bottom: 6px; min-height: 12px; }
+    .sc-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .sc-empty { font-size: 10px; color: #9ca3af; text-align: center; padding: 10px 0; }
+    .sc-item {
+      display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px;
+      border: 1.5px solid #e5e7eb; border-radius: 7px; padding: 5px 8px; background: #fafafa;
+    }
+    .sc-item-trig { font-size: 11px; font-weight: 700; color: #3b6ef5; font-family: 'SF Mono','Fira Code',monospace; white-space: nowrap; }
+    .sc-item-repl { font-size: 9.5px; color: #6b7280; font-family: 'SF Mono','Fira Code',monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sc-del { border: none; background: transparent; color: #dc2626; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+    .sc-del:hover { color: #991b1b; }
+    .sc-io { display: flex; gap: 5px; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+    .sc-io-btn {
+      flex: 1; border: 1.5px solid #e5e7eb; border-radius: 6px; padding: 4px 6px;
+      font-size: 10px; font-weight: 600; color: #374151; background: #fff; cursor: pointer;
+    }
+    .sc-io-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+    body.dark .shortcuts-panel .sc-title { color: #e5e7eb; }
+    body.dark .sc-input { background: #111827; border-color: #374151; color: #f9fafb; }
+    body.dark .sc-input:focus { border-color: #3b6ef5; }
+    body.dark .sc-item { background: #111827; border-color: #374151; }
+    body.dark .sc-item-repl { color: #9ca3af; }
+    body.dark .sc-io-btn { background: #1f2937; border-color: #374151; color: #d1d5db; }
+    body.dark .sc-io-btn:hover { background: #374151; }
+    body.dark .sc-io { border-top-color: #374151; }
     body.dark .tpl-name { color: #d1d5db; }
     body.dark .tpl-preview { color: #4b5563; }
 
@@ -1565,6 +1608,10 @@
       <div class="templates-wrap">
         <button class="templates-btn" id="templatesBtn">Templates</button>
         <div class="templates-panel hidden" id="templatesPanel"></div>
+      </div>
+      <div class="templates-wrap">
+        <button class="templates-btn" id="shortcutsBtn" title="Custom shortcuts that expand to LaTeX as you type">⚡ Shortcuts</button>
+        <div class="templates-panel shortcuts-panel hidden" id="shortcutsPanel"></div>
       </div>
     </div>
 
@@ -4042,7 +4089,7 @@ function renderBlock(line, output) {
 }
 
 function render() {
-  const input  = document.getElementById('latexInput').value;
+  const input  = applyShortcuts(document.getElementById('latexInput').value);
   const output = document.getElementById('output');
   if (!input.trim()) {
     output.innerHTML = '<span class="placeholder-text">Start typing to render LaTeX…</span>';
@@ -4212,6 +4259,7 @@ const waitForKatex = setInterval(() => {
     clearInterval(waitForKatex);
     buildSidebar();
     buildTemplatesPanel();
+    buildShortcutsPanel();
     buildCalcGrid();
     buildCalcSymBar();
     applySettings();
@@ -4303,6 +4351,136 @@ document.getElementById('templatesBtn').addEventListener('click', function(e) {
 document.addEventListener('click', function(e) {
   const panel = document.getElementById('templatesPanel');
   if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target.id !== 'templatesBtn') {
+    panel.classList.add('hidden');
+  }
+});
+
+// ── Custom shortcuts (user-defined trigger → LaTeX expansion) ──────────────────
+const SHORTCUTS_KEY = 'lx_shortcuts';
+
+function getShortcuts() {
+  try { const v = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || '[]'); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+function saveShortcuts(list) { localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(list)); }
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Non-destructive expansion: replace every trigger in one simultaneous pass
+// (longer triggers first) so replacements never cascade into one another.
+function applyShortcuts(src) {
+  const list = getShortcuts();
+  if (!list.length) return src;
+  const sorted = [...list].sort((a, b) => b.trigger.length - a.trigger.length);
+  const map = {};
+  sorted.forEach(s => { map[s.trigger] = s.replacement; });
+  const re = new RegExp(sorted.map(s => escapeRegex(s.trigger)).join('|'), 'g');
+  return src.replace(re, m => (m in map ? map[m] : m));
+}
+
+function scRerender() { render(); autoSaveInput(document.getElementById('latexInput').value); }
+
+function renderShortcutList() {
+  const listEl = document.getElementById('scList');
+  if (!listEl) return;
+  const list = getShortcuts();
+  listEl.innerHTML = '';
+  if (!list.length) { listEl.innerHTML = '<div class="sc-empty">No shortcuts yet. Add one above.</div>'; return; }
+  list.forEach(s => {
+    const row = document.createElement('div'); row.className = 'sc-item';
+    const trig = document.createElement('div'); trig.className = 'sc-item-trig'; trig.textContent = s.trigger;
+    const repl = document.createElement('div'); repl.className = 'sc-item-repl'; repl.textContent = s.replacement; repl.title = s.replacement;
+    const del = document.createElement('button'); del.className = 'sc-del'; del.textContent = '×'; del.title = 'Delete';
+    del.addEventListener('click', () => { saveShortcuts(getShortcuts().filter(x => x.trigger !== s.trigger)); renderShortcutList(); scRerender(); });
+    row.append(trig, repl, del);
+    listEl.appendChild(row);
+  });
+}
+
+function addShortcutFromInputs() {
+  const trigEl = document.getElementById('scTrig');
+  const replEl = document.getElementById('scRepl');
+  const errEl  = document.getElementById('scErr');
+  errEl.style.color = ''; errEl.textContent = '';
+  const trigger = trigEl.value.trim();
+  const replacement = replEl.value;
+  if (!trigger) { errEl.textContent = 'Enter a trigger.'; return; }
+  if (!replacement.trim()) { errEl.textContent = 'Enter a replacement.'; return; }
+  const list = getShortcuts();
+  if (list.some(x => x.trigger === trigger)) { errEl.textContent = 'That trigger already exists.'; return; }
+  list.push({ trigger, replacement });
+  saveShortcuts(list);
+  trigEl.value = ''; replEl.value = '';
+  renderShortcutList(); scRerender(); trigEl.focus();
+}
+
+function exportShortcuts() {
+  const data = JSON.stringify({ version: 1, shortcuts: getShortcuts() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'latex-shortcuts.json'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importShortcuts(file) {
+  const errEl = document.getElementById('scErr');
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const incoming = Array.isArray(parsed) ? parsed : (parsed && parsed.shortcuts);
+      if (!Array.isArray(incoming)) throw new Error('bad format');
+      const list = getShortcuts();
+      let added = 0, skipped = 0;
+      incoming.forEach(item => {
+        if (!item || typeof item.trigger !== 'string' || typeof item.replacement !== 'string') return;
+        const trigger = item.trigger.trim();
+        if (!trigger || !item.replacement.trim()) return;
+        if (list.some(x => x.trigger === trigger)) { skipped++; return; }
+        list.push({ trigger, replacement: item.replacement }); added++;
+      });
+      saveShortcuts(list); renderShortcutList(); scRerender();
+      errEl.style.color = '#059669';
+      errEl.textContent = 'Imported ' + added + (skipped ? ', skipped ' + skipped + ' duplicate(s)' : '') + '.';
+      setTimeout(() => { errEl.textContent = ''; errEl.style.color = ''; }, 2500);
+    } catch { errEl.style.color = ''; errEl.textContent = 'Invalid JSON file.'; }
+  };
+  reader.readAsText(file);
+}
+
+function buildShortcutsPanel() {
+  const panel = document.getElementById('shortcutsPanel');
+  if (!panel) return;
+  panel.innerHTML =
+    '<div class="sc-title">Custom Shortcuts</div>' +
+    '<div class="sc-hint">Type a trigger in the editor and it renders as your LaTeX — live, and it never rewrites your text. Use a distinctive trigger like <b>;int</b> or <b>@sum</b> so it doesn’t clash with normal typing.</div>' +
+    '<div class="sc-addrow">' +
+      '<input class="sc-input" id="scTrig" placeholder="trigger  e.g. ;int" autocomplete="off" spellcheck="false">' +
+      '<input class="sc-input" id="scRepl" placeholder="LaTeX  e.g. \\int_0^\\infty" autocomplete="off" spellcheck="false">' +
+      '<button class="sc-add-btn" id="scAdd">Add</button>' +
+    '</div>' +
+    '<div class="sc-err" id="scErr"></div>' +
+    '<div class="sc-list" id="scList"></div>' +
+    '<div class="sc-io">' +
+      '<button class="sc-io-btn" id="scExport">↓ Export JSON</button>' +
+      '<button class="sc-io-btn" id="scImport">↑ Import JSON</button>' +
+      '<input type="file" id="scFile" accept="application/json,.json" style="display:none">' +
+    '</div>';
+  document.getElementById('scAdd').addEventListener('click', addShortcutFromInputs);
+  document.getElementById('scTrig').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('scRepl').focus(); });
+  document.getElementById('scRepl').addEventListener('keydown', e => { if (e.key === 'Enter') addShortcutFromInputs(); });
+  document.getElementById('scExport').addEventListener('click', exportShortcuts);
+  document.getElementById('scImport').addEventListener('click', () => document.getElementById('scFile').click());
+  document.getElementById('scFile').addEventListener('change', e => { if (e.target.files[0]) importShortcuts(e.target.files[0]); e.target.value = ''; });
+  renderShortcutList();
+}
+
+document.getElementById('shortcutsBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('shortcutsPanel').classList.toggle('hidden');
+});
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('shortcutsPanel');
+  if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target.id !== 'shortcutsBtn' && !panel.contains(e.target)) {
     panel.classList.add('hidden');
   }
 });
@@ -5277,7 +5455,7 @@ document.getElementById('latexShareBtn').addEventListener('click', async () => {
 // ── LaTeX tab: copy source + save output as image ─────────────────────────────
 document.getElementById('latexCopyBtn').addEventListener('click', async () => {
   const btn = document.getElementById('latexCopyBtn');
-  const src = document.getElementById('latexInput').value;
+  const src = applyShortcuts(document.getElementById('latexInput').value);
   if (!src.trim()) return;
   try {
     await navigator.clipboard.writeText(src);
