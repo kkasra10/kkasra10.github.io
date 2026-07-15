@@ -427,6 +427,7 @@
       align-items: center;
       justify-content: center;
     }
+    .output-line:not(:first-child) { margin-top: var(--line-tighten, 0px); }
 
     .output-line .katex-display { margin: 0; }
     .output-line .katex { font-size: 1.65em; }
@@ -1513,7 +1514,7 @@
     <div class="align-sep"></div>
     <div class="spacing-slider-wrap">
       <span class="spacing-slider-label">&#8597;</span>
-      <input type="range" class="spacing-slider" id="spacingSlider" min="0" max="60" step="1" value="12">
+      <input type="range" class="spacing-slider" id="spacingSlider" min="-36" max="60" step="1" value="12">
     </div>
     <div style="margin-left:auto;display:flex;gap:5px;">
       <button class="paper-dl-btn" id="latexShareBtn" title="Copy shareable link">&#128279; Share</button>
@@ -4128,10 +4129,15 @@ function saveSettings(patch) {
 }
 
 function applyLineSpacing(val) {
-  const gap   = val + 'px';
-  const minH  = (36 + val * 0.67) + 'px';
+  // gap can't go negative in CSS; negative slider values instead shrink the
+  // per-line min-height AND pull lines together with a negative margin that
+  // reclaims displayMode's intrinsic vertical whitespace — up to ~3x tighter.
+  const gap     = Math.max(0, val) + 'px';
+  const minH    = Math.max(8, 36 + val * 0.67) + 'px';
+  const tighten = Math.min(0, val) * 0.22 + 'px';
   document.documentElement.style.setProperty('--line-gap', gap);
   document.documentElement.style.setProperty('--line-min-h', minH);
+  document.documentElement.style.setProperty('--line-tighten', tighten);
 }
 
 function applySettings() {
