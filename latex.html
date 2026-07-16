@@ -1468,6 +1468,17 @@
       .pb-section-num { font-size: 15px; }
       .placeholder-text { font-size: 14px; }
       .align-sep { display: none; }
+
+      /* Popovers must never exceed the viewport on phones */
+      .shortcuts-panel, .templates-panel {
+        width: min(340px, calc(100vw - 20px));
+        max-width: calc(100vw - 20px);
+        box-sizing: border-box;
+      }
+      .sc-list { max-height: 38vh; }
+      .sc-item { grid-template-columns: 84px 1fr auto; }
+      /* Bigger tap target for the delete button on touch */
+      .sc-del { padding: 4px 6px; font-size: 16px; }
     }
 
     @media (min-width: 701px) and (max-width: 1024px) {
@@ -4235,6 +4246,7 @@ document.getElementById('settingLang').addEventListener('change', function() {
 document.getElementById('settingAutoSave').addEventListener('change', function() {
   saveSettings({ autoSave: this.checked });
   if (!this.checked) saveSettings({ savedInput: '' });
+  if (typeof syncShortcutPersistence === 'function') syncShortcutPersistence();
 });
 
 // Toggle settings panel open/close
@@ -4358,12 +4370,32 @@ document.addEventListener('click', function(e) {
 
 // ── Custom shortcuts (user-defined trigger → LaTeX expansion) ──────────────────
 const SHORTCUTS_KEY = 'lx_shortcuts';
+let scCache = null;   // in-memory working set for the session
+
+function autoSaveOn() { return !!loadSettings().autoSave; }
 
 function getShortcuts() {
-  try { const v = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || '[]'); return Array.isArray(v) ? v : []; }
-  catch { return []; }
+  if (scCache) return scCache;
+  // Only remember across sessions when Auto-save is on (same rule as the input).
+  if (autoSaveOn()) {
+    try { const v = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || '[]'); scCache = Array.isArray(v) ? v : []; }
+    catch { scCache = []; }
+  } else {
+    localStorage.removeItem(SHORTCUTS_KEY);
+    scCache = [];
+  }
+  return scCache;
 }
-function saveShortcuts(list) { localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(list)); }
+function saveShortcuts(list) {
+  scCache = list;
+  if (autoSaveOn()) localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(list));
+  else localStorage.removeItem(SHORTCUTS_KEY);
+}
+// Called when the Auto-save toggle flips: start (or stop) remembering shortcuts.
+function syncShortcutPersistence() {
+  if (autoSaveOn()) localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(getShortcuts()));
+  else localStorage.removeItem(SHORTCUTS_KEY);
+}
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 // Non-destructive expansion: replace every trigger in one simultaneous pass
