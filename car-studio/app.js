@@ -254,7 +254,7 @@ function buildBodyGeometry(p, C) {
       const a = i * RING_PTS + k, b = i * RING_PTS + k2;
       const cIdx = (i + 1) * RING_PTS + k2, d = (i + 1) * RING_PTS + k;
       const m = edgeMaterial(k, Math.min(glArr[i], glArr[i + 1]), Math.min(gtArr[i], gtArr[i + 1]));
-      idxByMat[m].push(a, b, cIdx, a, cIdx, d);
+      idxByMat[m].push(a, cIdx, b, a, d, cIdx);
     }
   }
   /* nose & tail caps: fan to centroid */
@@ -266,8 +266,8 @@ function buildBodyGeometry(p, C) {
     pos.push(ring[0][0], cy / RING_PTS, cz / RING_PTS);
     for (let k = 0; k < RING_PTS; k++) {
       const a = ringIdx * RING_PTS + k, b = ringIdx * RING_PTS + (k + 1) % RING_PTS;
-      if (flip) idxByMat[0].push(centIdx, a, b);
-      else      idxByMat[0].push(centIdx, b, a);
+      if (flip) idxByMat[0].push(centIdx, b, a);
+      else      idxByMat[0].push(centIdx, a, b);
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -298,46 +298,49 @@ function buildWheel(styleId, tireR, rimR, width, mats) {
   const disc = new THREE.CylinderGeometry(rimR, rimR, width * 0.55, 28);
   disc.rotateX(Math.PI / 2);
 
+  /* rim assembly sits slightly proud of the tyre face so it reads from the side */
   const addSpokes = (n, wFrac, lFrac) => {
-    const inner = new THREE.Mesh(
-      new THREE.CylinderGeometry(rimR, rimR, width * 0.30, 28).rotateX(Math.PI / 2), mats.rimDark);
-    g.add(inner);
+    const backing = new THREE.Mesh(
+      new THREE.CylinderGeometry(rimR * 0.97, rimR * 0.97, width * 0.30, 28).rotateX(Math.PI / 2),
+      mats.rimDark);
+    backing.position.z = face * 0.92;
+    g.add(backing);
     for (let i = 0; i < n; i++) {
       const sp = new THREE.Mesh(
-        new THREE.BoxGeometry(rimR * lFrac, rimR * wFrac, width * 0.22), mats.rim);
+        new THREE.BoxGeometry(rimR * lFrac, rimR * wFrac, width * 0.18), mats.rim);
       const a = (i / n) * Math.PI * 2;
-      sp.position.set(Math.cos(a) * rimR * 0.48, Math.sin(a) * rimR * 0.48, face * 0.55);
+      sp.position.set(Math.cos(a) * rimR * 0.48, Math.sin(a) * rimR * 0.48, face * 1.04);
       sp.rotation.z = a;
       g.add(sp);
     }
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(rimR * 0.96, rimR * 0.06, 8, 32), mats.rim);
-    ring.position.z = face * 0.55;
+      new THREE.TorusGeometry(rimR * 0.95, rimR * 0.06, 8, 32), mats.rim);
+    ring.position.z = face * 1.04;
     g.add(ring);
   };
 
   switch (styleId) {
-    case "sport5": addSpokes(5, 0.30, 0.98); break;
-    case "multi":  addSpokes(10, 0.14, 0.98); break;
-    case "mesh":   addSpokes(14, 0.09, 0.98); break;
+    case "sport5": addSpokes(5, 0.34, 0.99); break;
+    case "multi":  addSpokes(10, 0.16, 0.99); break;
+    case "mesh":   addSpokes(14, 0.10, 0.99); break;
     case "aero": {
       const d = new THREE.Mesh(disc, mats.rim);
-      d.position.z = face * 0.30;
+      d.position.z = face * 0.80;
       g.add(d);
       break;
     }
     case "steel": {
       const d = new THREE.Mesh(
-        new THREE.CylinderGeometry(rimR * 0.82, rimR * 0.82, width * 0.5, 24).rotateX(Math.PI / 2),
+        new THREE.CylinderGeometry(rimR * 0.82, rimR * 0.82, width * 0.55, 24).rotateX(Math.PI / 2),
         mats.rimDark);
-      d.position.z = face * 0.25;
+      d.position.z = face * 0.78;
       g.add(d);
       break;
     }
   }
   const hub = new THREE.Mesh(
-    new THREE.CylinderGeometry(rimR * 0.18, rimR * 0.18, width * 0.6, 16).rotateX(Math.PI / 2), mats.rimDark);
-  hub.position.z = face * 0.45;
+    new THREE.CylinderGeometry(rimR * 0.18, rimR * 0.18, width * 0.55, 16).rotateX(Math.PI / 2), mats.rimDark);
+  hub.position.z = face * 0.88;
   g.add(hub);
   return g;
 }
@@ -356,9 +359,9 @@ function buildParts(p, parts, C, mats) {
   const L = C.L;
 
   /* lights — the details that make it read as a car */
-  const hlZ = C.halfW(0.10) - 0.11, hlY = Math.min(C.topY(0.10) - 0.06, p.noseHeight / 1000 - 0.02);
+  const hlX = 0.16, hlZ = C.halfW(hlX) * 0.55, hlY = Math.min(C.topY(hlX) - 0.055, p.noseHeight / 1000 - 0.01);
   for (const s of [1, -1])
-    g.add(box(0.13, 0.055, 0.30, mats.headlight, 0.10, hlY, s * hlZ, s * deg(-p.noseTaper * 0.8)));
+    g.add(box(0.11, 0.05, 0.26, mats.headlight, hlX, hlY, s * hlZ, s * deg(-p.noseTaper * 1.2)));
   const tlZ = C.halfW(L - 0.07) - 0.10, tlY = C.topY(L - 0.05) - 0.09;
   for (const s of [1, -1])
     g.add(box(0.07, 0.06, 0.32, mats.taillight, L - 0.055, tlY, s * tlZ, s * deg(p.tailTaper * 0.8)));
@@ -427,11 +430,11 @@ function buildHuman(mats) {
     l.position.set(0, 0.41, s * 0.10);
     g.add(l);
   }
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.60, 12), mats.human);
-  torso.position.y = 1.12;
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.76, 12), mats.human);
+  torso.position.y = 1.16;
   g.add(torso);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 12), mats.human);
-  head.position.y = 1.645;
+  head.position.y = 1.64;
   g.add(head);
   g.traverse(o => { o.castShadow = true; });
   return g;
@@ -449,7 +452,7 @@ function computeMetrics(p, seg) {
   const wbRatio = p.wheelbase / L;
   const frontal = 0.85 * (W / 1000) * (H / 1000);
 
-  let cd = 0.24;
+  let cd = 0.26;
   cd += Math.max(0, (65 - p.windshieldRake)) * 0.0016;
   if (seg.topology === "threebox") {
     cd += (p.rearGlassAngle > 22 && p.rearGlassAngle < 52) ? 0.030 : 0.010;
@@ -493,7 +496,7 @@ function computeMetrics(p, seg) {
 
 /* ═══════════════════════════ three.js scene ═══════════════════════════ */
 
-let renderer, scene, perspCam, activeCam, carGroup, bodyMesh, groundGrid, humanFig, dimGroup;
+let renderer, scene, perspCam, activeCam, carGroup, bodyMesh, groundMesh, groundGrid, humanFig, dimGroup;
 let mats = {};
 const disposables = [];
 let currentView = "persp";
@@ -575,16 +578,17 @@ function initScene() {
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, far: 30 });
+  key.shadow.camera.updateProjectionMatrix();
   scene.add(key);
   const rim = new THREE.DirectionalLight("#5a78a0", 0.4);
   rim.position.set(-6, 4, -5);
   scene.add(rim);
 
-  const ground = new THREE.Mesh(
+  groundMesh = new THREE.Mesh(
     new THREE.CircleGeometry(40, 48).rotateX(-Math.PI / 2),
     new THREE.MeshStandardMaterial({ color: "#14171c", roughness: 1 }));
-  ground.receiveShadow = true;
-  scene.add(ground);
+  groundMesh.receiveShadow = true;
+  scene.add(groundMesh);
   groundGrid = new THREE.GridHelper(40, 40, 0x2e3542, 0x1c212a);
   groundGrid.position.y = 0.002;
   scene.add(groundGrid);
@@ -690,7 +694,7 @@ function fitOrthoCams() {
     side:  { pos: [0, Hm / 2, 12],  up: [0, 1, 0], span: Lm * 1.25, cy: Hm / 2 },
     front: { pos: [-12, Hm / 2, 0], up: [0, 1, 0], span: Math.max(Wm * 2.2, Hm * 2.0 * aspect), cy: Hm / 2 },
     rear:  { pos: [12, Hm / 2, 0],  up: [0, 1, 0], span: Math.max(Wm * 2.2, Hm * 2.0 * aspect), cy: Hm / 2 },
-    top:   { pos: [0, 12, 0],       up: [-1, 0, 0], span: Math.max(Lm * 1.25, Wm * 1.3 * aspect), cy: 0 },
+    top:   { pos: [0, 12, 0],       up: [0, 0, -1], span: Math.max(Lm * 1.25, Wm * 1.3 * aspect), cy: 0 },
   };
   for (const id in defs) {
     const d = defs[id];
@@ -699,7 +703,6 @@ function fitOrthoCams() {
     cam.left = -halfW; cam.right = halfW; cam.top = halfH; cam.bottom = -halfH;
     cam.near = 0.1; cam.far = 60;
     cam.position.set(...d.pos);
-    cam.position.y += d.cy === 0 ? 0 : 0;
     cam.up.set(...d.up);
     cam.lookAt(0, d.cy, 0);
     cam.zoom = cam.zoom || 1;
@@ -813,13 +816,8 @@ function rebuild() {
   partsGroup.traverse(o => { if (o.geometry) disposables.push(o.geometry); });
   carGroup.add(partsGroup);
 
-  carGroup.position.x = 0;
+  /* everything is built in car coords (nose at x=0); centre the car on origin */
   carGroup.children.forEach(ch => { ch.position.x -= C.L / 2; });
-  /* parts group children are in car coords already relative to group at 0 —
-     shift the group, not its children */
-  partsGroup.position.x = -C.L / 2;
-  partsGroup.children.forEach(ch => { ch.position.x += C.L / 2 - C.L / 2; });
-  bodyMesh.position.x = -C.L / 2;
 
   humanFig.position.set(C.L * 0.30, 0, -(C.hw0 + 0.75));
 
@@ -1165,7 +1163,7 @@ function makeBlueprint() {
   const rr = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   rr.setSize(1100, 700);
   const wasBG = scene.background, wasFog = scene.fog;
-  const hidden = [groundGrid, humanFig, dimGroup];
+  const hidden = [groundMesh, groundGrid, humanFig, dimGroup];
   const wasVis = hidden.map(o => o.visible);
   hidden.forEach(o => { o.visible = false; });
   scene.background = null; scene.fog = null;
@@ -1201,7 +1199,7 @@ function makeBlueprint() {
   const sideSpan = Lm * 1.14;
   const sidePx = 1240, sidePy = Math.round(sidePx / 2.6);
   const sideImg = renderView([0, Hm / 2, 12], [0, 1, 0], sideSpan, sidePx, sidePy, Hm / 2);
-  const topImg  = renderView([0, 12, 0], [-1, 0, 0], sideSpan, sidePx, Math.round(sidePx * (Wm * 1.5) / sideSpan / 1.9), 0);
+  const topImg  = renderView([0, 12, 0], [0, 0, -1], sideSpan, sidePx, Math.round(sidePx * (Wm * 1.35) / sideSpan), 0);
   const fSpan = Math.max(Wm, Hm) * 1.45;
   const fw = 560, fh = 560;
   const frontImg = renderView([-12, Hm / 2, 0], [0, 1, 0], fSpan, fw, fh, Hm / 2);
@@ -1369,7 +1367,8 @@ function wireUI() {
   $$(".ctl-title").forEach(t => t.addEventListener("click", () => t.parentElement.classList.toggle("open")));
   $("#design-name").addEventListener("change", e => { state.name = e.target.value; });
 
-  $("#seed-select").addEventListener("change", e => seedFromBenchmark(+e.target.value));
+  $("#seed-select").addEventListener("change", e =>
+    seedFromBenchmark(e.target.value === "" ? -1 : +e.target.value));
 
   $$("#hud-views button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
   $("#tgl-turntable").addEventListener("click", e => {
@@ -1397,6 +1396,8 @@ function wireUI() {
   document.addEventListener("click", e => {
     if (!e.target.closest(".export-wrap")) $("#export-menu").classList.add("hidden");
   });
+  $$("#export-menu button").forEach(b =>
+    b.addEventListener("click", () => $("#export-menu").classList.add("hidden")));
   $("#exp-obj").addEventListener("click", exportOBJ);
   $("#exp-json").addEventListener("click", exportJSON);
   $("#exp-bp").addEventListener("click", showBlueprint);
