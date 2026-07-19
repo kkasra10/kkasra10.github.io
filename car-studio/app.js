@@ -102,11 +102,12 @@ function buildCurves(p, topology) {
   const xC  = clamp(xFA + mm(p.cowlOffset), xFA + 0.15, L * 0.55);           // cowl
   const rakeRun = Math.max(0.06, (roofH - cowlH) * Math.tan(deg(clamp(p.windshieldRake, 20, 74))));
   const xRF = clamp(xC + rakeRun, xC + 0.06, L - 0.55);                       // roof front
-  const xRR = clamp(xRF + mm(p.roofLength), xRF + 0.15, L - 0.30);           // roof rear
+  let xRR = clamp(xRF + mm(p.roofLength), xRF + 0.15, L - 0.30);             // roof rear
+  if (topology === "roadster") xRR = xRF + 0.02;                              // open top: header only
 
   const bedRail = beltH + 0.06;
   let glassBaseH, xGE;                                                        // rear-glass base height / end x
-  if (topology === "threebox") {
+  if (topology === "threebox" || topology === "roadster") {
     glassBaseH = clamp(mm(p.deckHeight), beltH - 0.05, roofH - 0.08);
   } else if (topology === "pickup") {
     glassBaseH = bedRail;
@@ -132,6 +133,7 @@ function buildCurves(p, topology) {
   /* 1 across glazing bands (windshield + backlight), for the canopy surface */
   function glassTop(x) {
     if (x > xC + 0.02 && x < xRF - 0.02) return 1;
+    if (topology === "roadster") return 0;                    // nothing behind the windscreen
     if (x > xRR + 0.02 && x < xGE - 0.02 && (topology !== "pickup" || xGE - xRR > 0.10)) return 1;
     return 0;
   }
@@ -206,11 +208,13 @@ function halfProfile(x, p, C) {
   gz = Math.max(gz, hw * 0.45);
   const rz = Math.max(gz * 0.86 - 0.008, hw * 0.25);
 
+  const crease = (state.params.creaseDepth || 0) / 1000;
+  const creaseT = clamp((state.params.creasePos || 55) / 100, 0.2, 0.8);
   return [
     [0,                      yBC],
     [hw * 0.62,              yBC + 0.004],
     [hw * 0.985,             yBS + 0.014],
-    [hw + 0.010,             lerp(yBS, yShoulder, 0.45)],
+    [hw + crease,            lerp(yBS, yShoulder, creaseT)],
     [hw,                     yShoulder],
     [lerp(hw - 0.008, gz, gl), yShoulder + lerp(0.012, 0.03, gl)],
     [lerp(hw * 0.60, rz, gl),  yT - crown * 0.42],
@@ -342,6 +346,11 @@ function buildWheel(styleId, tireR, rimR, width, mats) {
     new THREE.CylinderGeometry(rimR * 0.18, rimR * 0.18, width * 0.55, 16).rotateX(Math.PI / 2), mats.rimDark);
   hub.position.z = face * 0.88;
   g.add(hub);
+  if (styleId !== "steel") {                                          // painted brake caliper
+    const cal = new THREE.Mesh(new THREE.BoxGeometry(rimR * 0.34, rimR * 0.42, width * 0.16), mats.caliper);
+    cal.position.set(rimR * 0.55, 0.02, face * 0.30);
+    g.add(cal);
+  }
   return g;
 }
 
@@ -365,6 +374,29 @@ function buildParts(p, parts, C, mats) {
   const tlZ = C.halfW(L - 0.07) - 0.10, tlY = C.topY(L - 0.05) - 0.09;
   for (const s of [1, -1])
     g.add(box(0.07, 0.06, 0.32, mats.taillight, L - 0.055, tlY, s * tlZ, s * deg(p.tailTaper * 0.8)));
+
+  /* front fascia — the car's face */
+  const nH = p.noseHeight / 1000, fw = C.halfW(0.06) * 2;
+  if (parts.fascia === "bar") {
+    g.add(box(0.05, 0.085, fw * 0.56, mats.trim, 0.012, nH * 0.66, 0));
+  } else if (parts.fascia === "hex") {
+    g.add(box(0.05, Math.min(0.17, nH * 0.36), fw * 0.36, mats.trim, 0.012, nH * 0.58, 0));
+  } else if (parts.fascia === "split") {
+    for (const s of [1, -1]) g.add(box(0.05, 0.10, fw * 0.17, mats.trim, 0.012, nH * 0.48, s * fw * 0.30));
+    g.add(box(0.05, 0.045, fw * 0.30, mats.trim, 0.012, nH * 0.70, 0));
+  }
+  if (parts.fascia !== "ev") {                                        // lower cooling intake
+    g.add(box(0.05, 0.055, fw * 0.44, mats.trim, 0.012, C.bottomCenter(0.04) + 0.055, 0));
+  }
+
+  /* interior mass — dash + seats silhouette, visible through the glazing */
+  const ti0 = C.xC + 0.06, ti1 = Math.min(C.xRR + 0.55, C.xGE - 0.02, L - 0.30);
+  if (ti1 > ti0 + 0.25) {
+    const tmid = (ti0 + ti1) / 2;
+    const tub = box(ti1 - ti0, 0.34, C.halfW(tmid) * 2 * 0.70, mats.bed, tmid, C.beltH - 0.11, 0);
+    tub.castShadow = false;
+    g.add(tub);
+  }
 
   if (parts.splitter) {
     const w = C.halfW(0.15) * 2;
@@ -442,7 +474,7 @@ function buildHuman(mats) {
 
 /* ═══════════════════════════ metrics ═══════════════════════════ */
 
-const MASS_K = { sports: 138, sedan: 119, suv: 111, hatch: 118, pickup: 118 };
+const MASS_K = { sports: 138, sedan: 119, suv: 111, hatch: 118, pickup: 118, roadster: 129, wagon: 120 };
 
 function computeMetrics(p, seg) {
   const L = p.frontOverhang + p.wheelbase + p.rearOverhang;
@@ -456,7 +488,8 @@ function computeMetrics(p, seg) {
   cd += Math.max(0, (65 - p.windshieldRake)) * 0.0016;
   if (seg.topology === "threebox") {
     cd += (p.rearGlassAngle > 22 && p.rearGlassAngle < 52) ? 0.030 : 0.010;
-  } else cd += 0.055;
+  } else if (seg.topology === "roadster") cd += 0.065;        // open cockpit
+  else cd += 0.055;
   cd += (p.groundClearance - 110) * 0.00025;
   cd -= (p.noseTaper + p.tailTaper) * 0.0012;
   cd -= p.tumblehome * 0.0015;
@@ -534,8 +567,9 @@ function makeMaterials() {
     color: state.paint.body, metalness: 0.25, roughness: 0.30,
     clearcoat: 1.0, clearcoatRoughness: 0.12, envMap: env, envMapIntensity: 0.9 });
   mats.glass = new THREE.MeshPhysicalMaterial({
-    color: state.paint.glass, metalness: 0.4, roughness: 0.05,
-    envMap: env, envMapIntensity: 1.4 });
+    color: state.paint.glass, metalness: 0.35, roughness: 0.05,
+    transparent: true, opacity: 0.80, side: THREE.DoubleSide,
+    envMap: env, envMapIntensity: 1.6 });
   mats.trim = new THREE.MeshStandardMaterial({ color: state.paint.accent, metalness: 0.1, roughness: 0.7 });
   mats.tire = new THREE.MeshStandardMaterial({ color: "#17181a", roughness: 0.92 });
   mats.rim  = new THREE.MeshStandardMaterial({ color: "#b9bec8", metalness: 0.85, roughness: 0.3, envMap: env });
@@ -543,6 +577,7 @@ function makeMaterials() {
   mats.headlight = new THREE.MeshStandardMaterial({ color: "#cfd8e2", emissive: "#9fb6cf", emissiveIntensity: 0.7, roughness: 0.2 });
   mats.taillight = new THREE.MeshStandardMaterial({ color: "#7a1420", emissive: "#c22333", emissiveIntensity: 0.6, roughness: 0.25 });
   mats.bed  = new THREE.MeshStandardMaterial({ color: "#1c1e21", roughness: 0.95 });
+  mats.caliper = new THREE.MeshStandardMaterial({ color: "#b8342c", metalness: 0.4, roughness: 0.4 });
   mats.human = new THREE.MeshStandardMaterial({ color: "#8b93a1", roughness: 0.8 });
 }
 

@@ -51,14 +51,18 @@ const PARAM_GROUPS = [
         info: "Body height at the very front bumper tip. Together with hood height it sets the front-end wedge angle." },
       { key: "tailHeight", label: "Tail height", unit: "mm", min: 550, max: 1300, step: 5,
         info: "Body height at the rear bumper tip. A high tail aids aero (clean kick-off edge) and trunk volume — the classic \"high deck\" look." },
-      { key: "deckHeight", label: "Deck height", unit: "mm", min: 650, max: 1300, step: 5, topo: ["threebox"],
-        info: "Trunk-lid height on a three-box car — the third box. Deck below beltline = classic notchback; deck near roof height = fastback." },
+      { key: "deckHeight", label: "Deck height", unit: "mm", min: 650, max: 1300, step: 5, topo: ["threebox", "roadster"],
+        info: "Trunk-lid height on a three-box car — the third box (on a roadster: the tonneau deck behind the cockpit). Deck below beltline = classic notchback; deck near roof height = fastback." },
       { key: "noseTaper", label: "Nose taper", unit: "%", min: 0, max: 35, step: 1,
         info: "Plan-view narrowing of the body toward the front bumper. More taper = organic, aerodynamic nose; zero = slab-fronted truck look." },
       { key: "tailTaper", label: "Tail taper", unit: "%", min: 0, max: 35, step: 1,
         info: "Plan-view narrowing toward the rear bumper. Aerodynamically a gently tapered tail (boat-tailing) cuts wake size — but costs trunk width." },
       { key: "fenderFlare", label: "Fender flare", unit: "mm", min: 0, max: 90, step: 5,
         info: "Extra body width blistered around the wheel arches. The universal signal of performance — think widebody. Adds visual muscle at the cost of width." },
+      { key: "creaseDepth", label: "Character line depth", unit: "mm", min: 0, max: 35, step: 1,
+        info: "How far the side character line (the sculpted crease running along the doors) projects from the body. Zero = soft, minimal surfacing; 20 mm+ = dramatic, chiselled flanks that catch hard light." },
+      { key: "creasePos", label: "Character line height", unit: "%", min: 20, max: 80, step: 1,
+        info: "Where the character line sits between the rocker (0%) and the beltline (100%). High lines stretch and lower the car visually; low lines add a heavy, planted base." },
     ],
   },
   {
@@ -71,7 +75,7 @@ const PARAM_GROUPS = [
         info: "Where the windshield base sits, measured aft of the front axle. A large offset = long \"dash-to-axle\", the classic premium/RWD proportion; cab-forward designs minimise it for cabin space." },
       { key: "windshieldRake", label: "Windshield rake", unit: "°", min: 20, max: 72, step: 1,
         info: "Windshield angle from vertical. More rake = lower drag and a fast silhouette; less = upright, commanding, truck-like. Beyond ~68° glare and glass area become real problems." },
-      { key: "roofLength", label: "Roof length", unit: "mm", min: 500, max: 2300, step: 10,
+      { key: "roofLength", label: "Roof length", unit: "mm", min: 500, max: 2300, step: 10, topo: ["threebox", "twobox", "pickup"],
         info: "Length of the flat-ish roof plateau between windshield header and rear-glass header. Long roof = wagon/SUV practicality; short roof = coupé." },
       { key: "rearGlassAngle", label: "Rear glass angle", unit: "°", min: 5, max: 75, step: 1,
         info: "Backlight angle from vertical. Near-vertical = hatch/SUV tailgate; ~60–70° = fastback. The angle largely decides whether air stays attached or breaks away cleanly — mid values (30–50°) can be the aero worst case." },
@@ -106,6 +110,16 @@ PARAM_GROUPS.forEach(g => g.params.forEach(p => { PARAM_INDEX[p.key] = p; }));
 /* ───────────────────────── Component (parts-kit) catalog ───────────────────────── */
 
 const PART_OPTIONS = {
+  fascia: {
+    label: "Front fascia", type: "select",
+    info: "The face of the car. A blanked-off fascia reads EV; a horizontal bar reads executive; a tall central grille reads truck/SUV presence; twin side intakes read motorsport cooling.",
+    options: [
+      { id: "ev",    name: "Blanked (EV)" },
+      { id: "bar",   name: "Horizontal bar" },
+      { id: "hex",   name: "Central grille" },
+      { id: "split", name: "Twin intakes" },
+    ],
+  },
   wheelStyle: {
     label: "Wheel design", type: "select",
     info: "Swappable rim designs from the parts kit. Wheels are the jewellery of a car — the fastest way to change its character without touching a surface.",
@@ -173,11 +187,12 @@ const SEGMENTS = [
       wheelbase: 2450, frontOverhang: 980, rearOverhang: 1090, groundClearance: 110, wheelInset: 50,
       bodyWidth: 1852, beltHeight: 950, beltRise: 70, hoodHeight: 760, noseHeight: 560,
       tailHeight: 1060, deckHeight: 1090, noseTaper: 16, tailTaper: 10, fenderFlare: 40,
+      creaseDepth: 14, creasePos: 60,
       roofHeight: 1298, cowlOffset: 380, windshieldRake: 62, roofLength: 900, rearGlassAngle: 66,
       tumblehome: 12, greenhouseTaper: 14, roofCrown: 30,
       wheelDiameter: 660, rimDiameter: 20, tireWidth: 265, archGap: 45,
     },
-    parts: { wheelStyle: "sport5", spoiler: "ducktail", splitter: true, mirrors: true, roofRails: false, sharkFin: false, exhaust: "dual" },
+    parts: { fascia: "split", wheelStyle: "sport5", spoiler: "ducktail", splitter: true, mirrors: true, roofRails: false, sharkFin: false, exhaust: "dual" },
     norms: { wbRatio: [0.52, 0.58], H: [1230, 1400], clearance: [90, 135], W: [1750, 1950] },
   },
   {
@@ -193,11 +208,12 @@ const SEGMENTS = [
       wheelbase: 2975, frontOverhang: 860, rearOverhang: 1100, groundClearance: 140, wheelInset: 60,
       bodyWidth: 1868, beltHeight: 1010, beltRise: 45, hoodHeight: 810, noseHeight: 620,
       tailHeight: 980, deckHeight: 1060, noseTaper: 14, tailTaper: 12, fenderFlare: 15,
+      creaseDepth: 10, creasePos: 62,
       roofHeight: 1479, cowlOffset: 520, windshieldRake: 60, roofLength: 1250, rearGlassAngle: 62,
       tumblehome: 10, greenhouseTaper: 10, roofCrown: 35,
       wheelDiameter: 680, rimDiameter: 18, tireWidth: 245, archGap: 60,
     },
-    parts: { wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "dual" },
+    parts: { fascia: "bar", wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "dual" },
     norms: { wbRatio: [0.57, 0.62], H: [1420, 1520], clearance: [120, 165], W: [1800, 1930] },
   },
   {
@@ -213,11 +229,12 @@ const SEGMENTS = [
       wheelbase: 2690, frontOverhang: 920, rearOverhang: 990, groundClearance: 200, wheelInset: 55,
       bodyWidth: 1855, beltHeight: 1090, beltRise: 55, hoodHeight: 950, noseHeight: 720,
       tailHeight: 1130, deckHeight: 1100, noseTaper: 12, tailTaper: 8, fenderFlare: 35,
+      creaseDepth: 12, creasePos: 55,
       roofHeight: 1685, cowlOffset: 430, windshieldRake: 50, roofLength: 1650, rearGlassAngle: 22,
       tumblehome: 8, greenhouseTaper: 8, roofCrown: 30,
       wheelDiameter: 720, rimDiameter: 18, tireWidth: 225, archGap: 65,
     },
-    parts: { wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: true, sharkFin: true, exhaust: "single" },
+    parts: { fascia: "hex", wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: true, sharkFin: true, exhaust: "single" },
     norms: { wbRatio: [0.56, 0.62], H: [1580, 1780], clearance: [175, 240], W: [1800, 1980] },
   },
   {
@@ -233,11 +250,12 @@ const SEGMENTS = [
       wheelbase: 2636, frontOverhang: 880, rearOverhang: 770, groundClearance: 145, wheelInset: 50,
       bodyWidth: 1789, beltHeight: 1010, beltRise: 60, hoodHeight: 840, noseHeight: 640,
       tailHeight: 1080, deckHeight: 1050, noseTaper: 13, tailTaper: 9, fenderFlare: 20,
+      creaseDepth: 9, creasePos: 58,
       roofHeight: 1456, cowlOffset: 430, windshieldRake: 55, roofLength: 1330, rearGlassAngle: 25,
       tumblehome: 9, greenhouseTaper: 9, roofCrown: 30,
       wheelDiameter: 635, rimDiameter: 17, tireWidth: 225, archGap: 55,
     },
-    parts: { wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "single" },
+    parts: { fascia: "bar", wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "single" },
     norms: { wbRatio: [0.59, 0.63], H: [1400, 1500], clearance: [125, 165], W: [1720, 1830] },
   },
   {
@@ -253,12 +271,55 @@ const SEGMENTS = [
       wheelbase: 3085, frontOverhang: 900, rearOverhang: 1340, groundClearance: 310, wheelInset: 55,
       bodyWidth: 1855, beltHeight: 1180, beltRise: 20, hoodHeight: 1050, noseHeight: 800,
       tailHeight: 1180, deckHeight: 1180, noseTaper: 10, tailTaper: 4, fenderFlare: 30,
+      creaseDepth: 11, creasePos: 48,
       roofHeight: 1815, cowlOffset: 480, windshieldRake: 45, roofLength: 1150, rearGlassAngle: 12,
       tumblehome: 7, greenhouseTaper: 6, roofCrown: 25,
       wheelDiameter: 775, rimDiameter: 17, tireWidth: 265, archGap: 75,
     },
-    parts: { wheelStyle: "steel", spoiler: "none", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "single" },
+    parts: { fascia: "hex", wheelStyle: "steel", spoiler: "none", splitter: false, mirrors: true, roofRails: false, sharkFin: true, exhaust: "single" },
     norms: { wbRatio: [0.55, 0.63], H: [1750, 2000], clearance: [220, 330], W: [1800, 2060] },
+  },
+  {
+    id: "roadster", name: "Roadster", topology: "roadster",
+    desc: "Open-top two-seater",
+    blurb: "MX-5 / Boxster class: open cockpit, windscreen and tonneau, tiny footprint, driver-first proportions.",
+    benchmarks: [
+      { name: "Mazda MX-5 (ND)",     L: 3915, WB: 2310, W: 1735, H: 1235, kg: 1062 },
+      { name: "Porsche 718 Boxster", L: 4379, WB: 2475, W: 1801, H: 1280, kg: 1365 },
+      { name: "BMW Z4 (G29)",        L: 4324, WB: 2470, W: 1864, H: 1304, kg: 1405 },
+    ],
+    defaults: {
+      wheelbase: 2310, frontOverhang: 815, rearOverhang: 790, groundClearance: 125, wheelInset: 45,
+      bodyWidth: 1735, beltHeight: 900, beltRise: 55, hoodHeight: 720, noseHeight: 540,
+      tailHeight: 960, deckHeight: 940, noseTaper: 15, tailTaper: 12, fenderFlare: 25,
+      creaseDepth: 12, creasePos: 52,
+      roofHeight: 1210, cowlOffset: 350, windshieldRake: 58, roofLength: 400, rearGlassAngle: 50,
+      tumblehome: 10, greenhouseTaper: 12, roofCrown: 20,
+      wheelDiameter: 620, rimDiameter: 17, tireWidth: 205, archGap: 45,
+    },
+    parts: { fascia: "split", wheelStyle: "sport5", spoiler: "lip", splitter: false, mirrors: true, roofRails: false, sharkFin: false, exhaust: "dual" },
+    norms: { wbRatio: [0.54, 0.62], H: [1180, 1320], clearance: [100, 140], W: [1700, 1900] },
+  },
+  {
+    id: "wagon", name: "Estate / Wagon", topology: "twobox",
+    desc: "Long-roof cargo athlete",
+    blurb: "A4 Avant / V60 class: sedan platform, roof carried to the tail, upright liftgate over a full cargo bay.",
+    benchmarks: [
+      { name: "Audi A4 Avant (B9)",     L: 4762, WB: 2820, W: 1847, H: 1435, kg: 1520 },
+      { name: "Volvo V60",              L: 4761, WB: 2872, W: 1850, H: 1432, kg: 1750 },
+      { name: "VW Passat Variant (B8)", L: 4767, WB: 2791, W: 1832, H: 1477, kg: 1462 },
+    ],
+    defaults: {
+      wheelbase: 2820, frontOverhang: 880, rearOverhang: 1062, groundClearance: 140, wheelInset: 55,
+      bodyWidth: 1847, beltHeight: 1000, beltRise: 40, hoodHeight: 800, noseHeight: 620,
+      tailHeight: 1090, deckHeight: 1050, noseTaper: 13, tailTaper: 8, fenderFlare: 15,
+      creaseDepth: 10, creasePos: 62,
+      roofHeight: 1435, cowlOffset: 500, windshieldRake: 58, roofLength: 1850, rearGlassAngle: 28,
+      tumblehome: 9, greenhouseTaper: 8, roofCrown: 32,
+      wheelDiameter: 660, rimDiameter: 17, tireWidth: 225, archGap: 60,
+    },
+    parts: { fascia: "bar", wheelStyle: "multi", spoiler: "lip", splitter: false, mirrors: true, roofRails: true, sharkFin: true, exhaust: "dual" },
+    norms: { wbRatio: [0.57, 0.62], H: [1400, 1500], clearance: [120, 165], W: [1800, 1930] },
   },
 ];
 
@@ -266,11 +327,13 @@ const SEGMENT_INDEX = {};
 SEGMENTS.forEach(s => { SEGMENT_INDEX[s.id] = s; });
 
 const DEFAULT_PAINT = {
-  sports: { body: "#b8342c", finish: "gloss", glass: "#18222c", accent: "#20242a" },
-  sedan:  { body: "#3c4757", finish: "gloss", glass: "#18222c", accent: "#20242a" },
-  suv:    { body: "#5a6a5d", finish: "satin", glass: "#18222c", accent: "#23262b" },
-  hatch:  { body: "#c8c9cc", finish: "gloss", glass: "#18222c", accent: "#202329" },
-  pickup: { body: "#7a3f2a", finish: "satin", glass: "#18222c", accent: "#25272b" },
+  sports:   { body: "#b8342c", finish: "gloss", glass: "#18222c", accent: "#20242a" },
+  sedan:    { body: "#3c4757", finish: "gloss", glass: "#18222c", accent: "#20242a" },
+  suv:      { body: "#5a6a5d", finish: "satin", glass: "#18222c", accent: "#23262b" },
+  hatch:    { body: "#c8c9cc", finish: "gloss", glass: "#18222c", accent: "#202329" },
+  pickup:   { body: "#7a3f2a", finish: "satin", glass: "#18222c", accent: "#25272b" },
+  roadster: { body: "#a01f2d", finish: "gloss", glass: "#18222c", accent: "#1d2026" },
+  wagon:    { body: "#31506e", finish: "gloss", glass: "#18222c", accent: "#20242a" },
 };
 
 /* ───────────────────────── Derived-metric explanations ───────────────────────── */
@@ -325,7 +388,8 @@ const REVIEW_RULES = [
     if (p.bodyWidth > 2000) return { level: "warn", msg: `Width ${p.bodyWidth} mm exceeds 2000 mm — many European garages, lanes and regulations become hostile past this point.` };
     return null;
   },
-  (p) => {
+  (p, m, seg) => {
+    if (seg.topology === "roadster") return null;             // no glasshouse on an open car
     const glasshouse = p.roofHeight - p.beltHeight;
     if (glasshouse < 260) return { level: "alert", msg: `Glasshouse is only ${glasshouse} mm tall (roof − beltline) — a gun-slit cabin. Striking in a render, undriveable in traffic. 300 mm is a practical floor.` };
     if (glasshouse < 320) return { level: "warn", msg: `Shallow glasshouse (${glasshouse} mm). Concept-car drama — check outward visibility targets before committing.` };
