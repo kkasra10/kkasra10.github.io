@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConceptForge — Parametric Car Design Studio</title>
+<meta name="description" content="A parametric 3D car concept studio: real-world vehicle templates, engineering sliders, live design feedback, and pipeline-ready exports. Runs entirely in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════ TOP BAR ══════════════ -->
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-mark">◧</span>
+    <span class="brand-name">ConceptForge</span>
+    <span class="brand-sub">Car Design Studio</span>
+  </div>
+  <input id="design-name" type="text" value="Untitled Concept" spellcheck="false"
+         title="Name of the current design — used in saves, exports and blueprints">
+  <div class="topbar-actions">
+    <button id="btn-save"      class="tb" title="Save this design to the studio library (stored in this browser)">Save</button>
+    <button id="btn-library"   class="tb" title="Open the studio library — every saved design of your team on this machine">Library</button>
+    <button id="btn-share"     class="tb" title="Copy a link that encodes the whole design — paste it in team chat and anyone opens this exact model">Share link</button>
+    <div class="export-wrap">
+      <button id="btn-export" class="tb tb-primary" title="Hand the design off to the rest of the pipeline">Export ▾</button>
+      <div id="export-menu" class="menu hidden">
+        <button id="exp-obj"  title="Wavefront OBJ mesh — opens in Blender, Maya, 3ds Max, most CAD">3D mesh (.obj)</button>
+        <button id="exp-json" title="Machine-readable spec sheet with every parameter in real units — also the re-import format">Spec sheet (.json)</button>
+        <button id="exp-bp"   title="Orthographic blueprint with dimension callouts — for design reviews">Blueprint (.png)</button>
+        <button id="exp-import" title="Load a previously exported .json spec sheet">Import spec…</button>
+      </div>
+    </div>
+    <button id="btn-manual" class="tb" title="The field manual: how this studio works, its formulas and its data sources">Manual</button>
+  </div>
+  <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+</header>
+
+<div id="workspace">
+
+  <!-- ══════════════ LEFT: DESIGN CONTROLS ══════════════ -->
+  <aside id="panel-left">
+    <div class="panel-head">Design controls</div>
+
+    <section class="ctl-section open" id="sec-template">
+      <h3 class="ctl-title">Template <span class="hint">— start from a real-world segment</span></h3>
+      <div class="ctl-body">
+        <div id="segment-cards"></div>
+        <div class="seed-row">
+          <label for="seed-select" class="seed-label" data-tip="Every benchmark below is built from manufacturer-published dimensions. Seeding copies its stance onto your sliders — then you make it yours.">Seed from benchmark ⓘ</label>
+          <select id="seed-select"></select>
+        </div>
+      </div>
+    </section>
+
+    <div id="param-sections"><!-- generated from data.js --></div>
+
+    <section class="ctl-section open" id="sec-parts">
+      <h3 class="ctl-title">Components <span class="hint">— the parts kit</span></h3>
+      <div class="ctl-body" id="parts-body"><!-- generated --></div>
+    </section>
+
+    <section class="ctl-section open" id="sec-paint">
+      <h3 class="ctl-title">Paint &amp; finish</h3>
+      <div class="ctl-body" id="paint-body"><!-- generated --></div>
+    </section>
+  </aside>
+
+  <!-- ══════════════ CENTER: VIEWPORT ══════════════ -->
+  <main id="viewport-wrap">
+    <canvas id="viewport"></canvas>
+
+    <div id="hud-views" class="hud">
+      <button data-view="persp" class="active" title="Perspective studio view (key 1)">Studio</button>
+      <button data-view="side"  title="Orthographic side elevation (key 2)">Side</button>
+      <button data-view="front" title="Orthographic front elevation (key 3)">Front</button>
+      <button data-view="top"   title="Orthographic plan view (key 4)">Top</button>
+      <button data-view="rear"  title="Orthographic rear elevation (key 5)">Rear</button>
+    </div>
+
+    <div id="hud-toggles" class="hud">
+      <button id="tgl-turntable" title="Slowly rotate the model, like a studio turntable (key T)">⟳ Turntable</button>
+      <button id="tgl-human"     title="Show a 1.75 m human figure for scale (key H)">🧍 Scale figure</button>
+      <button id="tgl-dims"      title="Show live measurement lines on the model (key D)">⤢ Dimensions</button>
+      <button id="tgl-grid" class="active" title="1-metre floor grid (key G)">▦ Grid</button>
+    </div>
+
+    <div id="hud-help">drag&nbsp;·&nbsp;orbit&nbsp;&nbsp;|&nbsp;&nbsp;wheel&nbsp;·&nbsp;zoom&nbsp;&nbsp;|&nbsp;&nbsp;right-drag / shift-drag&nbsp;·&nbsp;pan</div>
+    <div id="dim-labels"></div>
+    <div id="toast" class="hidden"></div>
+  </main>
+
+  <!-- ══════════════ RIGHT: ENGINEERING COPILOT ══════════════ -->
+  <aside id="panel-right">
+    <div class="panel-head">Engineering copilot</div>
+
+    <section class="eng-section">
+      <h3>Key dimensions</h3>
+      <div id="eng-dims" class="eng-grid"></div>
+    </section>
+
+    <section class="eng-section">
+      <h3>Derived metrics <span class="hint">— live estimates</span></h3>
+      <div id="eng-metrics"></div>
+    </section>
+
+    <section class="eng-section">
+      <h3>Design review</h3>
+      <div id="eng-warnings"></div>
+    </section>
+
+    <section class="eng-section">
+      <h3>Segment benchmarks <span class="hint">— published specs</span></h3>
+      <div id="eng-bench"></div>
+      <p class="bench-note">Figures from manufacturer-published specifications (see Manual → Data sources). Your closest benchmark is highlighted.</p>
+    </section>
+  </aside>
+</div>
+
+<!-- ══════════════ LIBRARY MODAL ══════════════ -->
+<div id="modal-library" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h2>Studio library</h2><button class="modal-close" data-close>✕</button></div>
+    <p class="modal-sub">Designs saved in this browser. Export any of them as a spec sheet to move between machines or archive in your team's repository.</p>
+    <div id="library-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════ BLUEPRINT MODAL ══════════════ -->
+<div id="modal-blueprint" class="modal hidden">
+  <div class="modal-card wide">
+    <div class="modal-head"><h2>Blueprint</h2>
+      <div><button id="bp-download" class="tb tb-primary">Download PNG</button>
+      <button class="modal-close" data-close>✕</button></div>
+    </div>
+    <div id="bp-holder"></div>
+  </div>
+</div>
+
+<!-- ══════════════ MANUAL MODAL ══════════════ -->
+<div id="modal-manual" class="modal hidden">
+  <div class="modal-card wide manual">
+    <div class="modal-head"><h2>Field manual</h2><button class="modal-close" data-close>✕</button></div>
+
+    <h3>Why this studio exists</h3>
+    <p>ConceptForge lets a designer with <em>no</em> 3D-modelling background produce a dimensionally credible car concept in minutes,
+       and hand it to the senior team as real geometry. You never sculpt: you make <strong>engineering decisions</strong> —
+       wheelbase, overhangs, greenhouse, stance — and the studio builds the surfaces. Three values drive every feature:</p>
+    <ul>
+      <li><strong>Customisability</strong> — every dimension is a live parameter in real millimetres, layered with a swappable parts kit and paint system. Two designers starting from the same template should end somewhere completely different.</li>
+      <li><strong>Informativeness</strong> — every slider explains itself (hover the ⓘ), every derived metric shows its formula, and the design review warns when a choice leaves the realistic envelope of the chosen segment. Using the tool <em>is</em> the training.</li>
+      <li><strong>Scalability</strong> — designs are plain JSON spec sheets and shareable URLs; meshes export to OBJ for Blender/Maya/CAD; and the whole studio is static files on GitHub Pages, so rolling it out to 5 or 500 recruits costs the same: nothing.</li>
+    </ul>
+
+    <h3>Workflow (the 6 steps we onboard recruits with)</h3>
+    <ol>
+      <li><strong>Pick a segment.</strong> Each template carries the proportions of its real-world class.</li>
+      <li><strong>Seed from a benchmark</strong> if you want to start on the exact stance of a production car.</li>
+      <li><strong>Set the chassis</strong> — wheelbase and overhangs are 80&nbsp;% of a car's character. Watch the wheelbase-to-length ratio in the copilot.</li>
+      <li><strong>Shape body &amp; greenhouse</strong> — beltline, roofline, windshield rake, tumblehome. Toggle the scale figure and dimension lines while you work.</li>
+      <li><strong>Stance and components</strong> — wheels, arch gap, spoilers, rails. Small arch gaps read “planted”; big ones read “off-road”.</li>
+      <li><strong>Review and export</strong> — clear the design-review warnings you don't <em>intend</em> to keep (breaking a rule on purpose is design; breaking it unknowingly is a mistake), then export.</li>
+    </ol>
+
+    <h3>Formulas behind the derived metrics</h3>
+    <ul class="formulas">
+      <li><strong>Frontal area</strong> A ≈ 0.85 × width × height — the standard automotive approximation for projected area.</li>
+      <li><strong>Drag estimate</strong> C<sub>d</sub> is a heuristic: a 0.24 baseline plus penalties for an upright windshield, a squareback tail, ride height and a boxy greenhouse. It ranks your own iterations against each other; it is <em>not</em> a wind tunnel.</li>
+      <li><strong>Approach / departure angle</strong> ≈ atan( lowest bumper point ÷ horizontal distance to the tyre contact patch ).</li>
+      <li><strong>Turning circle</strong> ≈ 2 × ( wheelbase ÷ sin 33° + track ÷ 2 ), kerb-to-kerb, assuming a typical 33° steering lock.</li>
+      <li><strong>Concept mass</strong> ≈ bounding volume × a per-segment density factor calibrated to the benchmark cars. A packaging-stage guess, ±10&nbsp;%.</li>
+    </ul>
+
+    <h3>Data sources</h3>
+    <p>Segment templates and benchmark tables are derived from manufacturer-published exterior dimensions
+       (Porsche, Toyota, BMW, Volkswagen, Tesla, Honda, Ford, Hyundai, Mazda, Audi, Volvo press specifications) for the vehicles named in each card.
+       They are used as dimensional ground truth only — no manufacturer geometry is included; every surface is generated parametrically.</p>
+
+    <h3>Extending the studio (for the tools team)</h3>
+    <p>Everything is data-driven from <code>data.js</code>: a new vehicle segment is one object in <code>SEGMENTS</code> (defaults + benchmarks + norm bands),
+       a new slider is one row in <code>PARAM_GROUPS</code> (the UI, glossary tooltip, spec sheet and share link pick it up automatically),
+       a new wheel or spoiler is one entry in <code>PART_OPTIONS</code> plus a builder case in <code>app.js</code>.
+       No build step, no dependencies beyond the vendored three.js.</p>
+  </div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+
+<script src="three.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
