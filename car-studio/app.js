@@ -1,4 +1,4 @@
-/* ConceptForge — engine.
+/* StudioTheMobile — engine.
    Parametric body generation, viewport, engineering copilot, exports.
    Depends on data.js (segments, params, parts, rules) and three.min.js. */
 
@@ -35,12 +35,16 @@ function toast(msg) {
 
 /* ═══════════════════════════ state ═══════════════════════════ */
 
+const IDENT_KEY = "studiothemobile.identity";
+const getIdentity = () => localStorage.getItem(IDENT_KEY) || "";
+
 const state = {
   name: "Untitled Concept",
   segment: "sports",
   params: {},
   parts: {},
   paint: {},
+  meta: { owner: "", created: null, basedOn: null },
 };
 
 function applySegment(segId, keepName) {
@@ -49,14 +53,16 @@ function applySegment(segId, keepName) {
   state.params = Object.assign({}, seg.defaults);
   state.parts = Object.assign({}, seg.parts);
   state.paint = Object.assign({}, DEFAULT_PAINT[segId]);
+  state.meta = { owner: getIdentity(), created: new Date().toISOString(), basedOn: null };
   if (!keepName) state.name = "Untitled " + seg.name;
 }
 
 function serializeDesign() {
   return {
-    app: "ConceptForge", version: 1, units: "mm",
+    app: "StudioTheMobile", version: 1, units: "mm",
     name: state.name, segment: state.segment,
     date: new Date().toISOString().slice(0, 10),
+    meta: Object.assign({}, state.meta),
     params: Object.assign({}, state.params),
     parts: Object.assign({}, state.parts),
     paint: Object.assign({}, state.paint),
@@ -65,7 +71,7 @@ function serializeDesign() {
 }
 
 function loadDesign(d) {
-  if (!d || !d.params || !SEGMENT_INDEX[d.segment]) throw new Error("Not a ConceptForge spec sheet");
+  if (!d || !d.params || !SEGMENT_INDEX[d.segment]) throw new Error("Not a StudioTheMobile spec sheet");
   applySegment(d.segment, true);
   state.name = d.name || "Imported concept";
   for (const k in d.params) if (k in PARAM_INDEX) {
@@ -74,6 +80,7 @@ function loadDesign(d) {
   }
   for (const k in d.parts || {}) if (k in PART_OPTIONS) state.parts[k] = d.parts[k];
   Object.assign(state.paint, d.paint || {});
+  state.meta = Object.assign({ owner: "", created: null, basedOn: null }, d.meta || {});
   $("#design-name").value = state.name;
   refreshAllControls();
   rebuild();
@@ -1103,7 +1110,7 @@ function bindTooltips() {
 /* ═══════════════════════════ exports ═══════════════════════════ */
 
 function exportOBJ() {
-  const lines = ["# ConceptForge concept — " + state.name,
+  const lines = ["# StudioTheMobile concept — " + state.name,
                  "# Units: metres. Generated " + new Date().toISOString(), ""];
   let vOff = 1, nOff = 1;
   const v3 = new THREE.Vector3(), n3 = new THREE.Vector3();
@@ -1251,7 +1258,9 @@ function makeBlueprint() {
   ctx.fillText(state.name.toUpperCase(), 70, 96);
   ctx.font = "22px system-ui, sans-serif";
   ctx.fillStyle = "rgba(255,255,255,.75)";
-  ctx.fillText(`${seg.name}  ·  ConceptForge parametric study  ·  ${new Date().toISOString().slice(0, 10)}  ·  all dimensions in mm`, 70, 132);
+  ctx.fillText(`${seg.name}  ·  StudioTheMobile parametric study` +
+    (state.meta.owner ? `  ·  ${state.meta.owner}` : "") +
+    `  ·  ${new Date().toISOString().slice(0, 10)}  ·  all dimensions in mm`, 70, 132);
 
   const sideX = 70, sideY = 190;
   ctx.drawImage(sideImg, sideX, sideY);
@@ -1335,7 +1344,7 @@ function showBlueprint() {
 
 /* ═══════════════════════════ library ═══════════════════════════ */
 
-const LIB_KEY = "conceptforge.designs.v1";
+const LIB_KEY = "studiothemobile.designs.v1";
 const libAll = () => { try { return JSON.parse(localStorage.getItem(LIB_KEY)) || []; } catch { return []; } };
 const libWrite = list => localStorage.setItem(LIB_KEY, JSON.stringify(list));
 
@@ -1350,6 +1359,16 @@ function thumbnail() {
 
 function saveDesign() {
   state.name = $("#design-name").value.trim() || "Untitled Concept";
+  const identity = getIdentity() || "guest";
+  let forkedFrom = null;
+  if (!state.meta.owner) state.meta.owner = identity;
+  if (state.meta.owner !== identity) {                     // not yours: fork with credit
+    forkedFrom = `${state.name} — ${state.meta.owner}`;
+    state.meta.basedOn = forkedFrom;
+    state.meta.owner = identity;
+    if (!/\(copy\)$/i.test(state.name)) state.name += " (copy)";
+    $("#design-name").value = state.name;
+  }
   const list = libAll();
   const entry = {
     id: Date.now().toString(36),
@@ -1362,20 +1381,27 @@ function saveDesign() {
   const i = list.findIndex(e => e.name === entry.name);
   if (i >= 0) list[i] = entry; else list.unshift(entry);
   libWrite(list.slice(0, 60));
-  toast(`“${state.name}” saved to the studio library`);
+  toast(forkedFrom
+    ? `Saved as your own copy — lineage credits “${forkedFrom}”`
+    : `“${state.name}” saved to the studio library (owner: ${state.meta.owner})`);
 }
 
 function renderLibrary() {
   const list = libAll();
-  $("#library-list").innerHTML = list.length ? list.map(e =>
-    `<div class="lib-item" data-id="${e.id}">
+  const me = getIdentity() || "guest";
+  $("#library-list").innerHTML = list.length ? list.map(e => {
+    const owner = (e.data.meta && e.data.meta.owner) || "unowned";
+    const basedOn = e.data.meta && e.data.meta.basedOn;
+    return `<div class="lib-item" data-id="${e.id}">
        <img src="${e.thumb}" alt="">
        <div class="lib-meta"><div class="n">${e.name}</div>
-       <div class="d">${e.seg} · saved ${new Date(e.date).toLocaleString()}</div></div>
+       <div class="d">${e.seg} · owner: ${owner}${basedOn ? " · based on " + basedOn : ""} · ${new Date(e.date).toLocaleDateString()}</div></div>
        <button class="tb" data-act="load">Open</button>
-       <button class="tb" data-act="export">Spec</button>
-       <button class="tb" data-act="del">✕</button>
-     </div>`).join("")
+       <button class="tb" data-act="export">Spec</button>` +
+       (owner === me ? `<button class="tb" data-act="own" title="Hand this design to a new owner">Transfer</button>` : "") +
+       `<button class="tb" data-act="del">✕</button>
+     </div>`;
+  }).join("")
     : `<div class="lib-empty">No designs saved yet. Shape something, hit Save, and it appears here for the whole team using this machine.</div>`;
   $$("#library-list .lib-item button").forEach(b => b.addEventListener("click", () => {
     const id = b.closest(".lib-item").dataset.id;
@@ -1389,6 +1415,14 @@ function renderLibrary() {
     } else if (b.dataset.act === "export") {
       download(entry.name.replace(/[^\w\-]+/g, "_") + ".spec.json",
         new Blob([JSON.stringify(entry.data, null, 2)], { type: "application/json" }));
+    } else if (b.dataset.act === "own") {
+      const next = prompt(`Transfer “${entry.name}” to which designer?`, "");
+      if (next && next.trim()) {
+        entry.data.meta = Object.assign({ created: null, basedOn: null }, entry.data.meta, { owner: next.trim() });
+        libWrite(list2);
+        renderLibrary();
+        toast(`“${entry.name}” is now owned by ${next.trim()}`);
+      }
     } else {
       libWrite(list2.filter(e => e.id !== id));
       renderLibrary();
@@ -1401,6 +1435,16 @@ function renderLibrary() {
 function wireUI() {
   $$(".ctl-title").forEach(t => t.addEventListener("click", () => t.parentElement.classList.toggle("open")));
   $("#design-name").addEventListener("change", e => { state.name = e.target.value; });
+
+  $("#ident-label").textContent = getIdentity() || "guest";
+  $("#btn-identity").addEventListener("click", () => {
+    const v = prompt("Your designer name (owns everything you save):", getIdentity());
+    if (v === null) return;
+    localStorage.setItem(IDENT_KEY, v.trim());
+    $("#ident-label").textContent = v.trim() || "guest";
+    if (!state.meta.owner) state.meta.owner = v.trim();
+    toast(v.trim() ? `Signed in as ${v.trim()}` : "Identity cleared — saving as guest");
+  });
 
   $("#seed-select").addEventListener("change", e =>
     seedFromBenchmark(e.target.value === "" ? -1 : +e.target.value));

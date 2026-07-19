@@ -1,8 +1,8 @@
-# ConceptForge — Parametric Car Design Studio
+# StudioTheMobile — Parametric Car Design Studio
 
 **Live at [`/car-studio/`](https://kkasra10.github.io/car-studio/)** · runs entirely in the browser · zero dependencies beyond the vendored three.js
 
-ConceptForge lets a designer with **no 3D-modelling background** produce a dimensionally credible car
+StudioTheMobile lets a designer with **no 3D-modelling background** produce a dimensionally credible car
 concept in minutes and hand it to a senior team as real geometry. You never sculpt — you make
 *engineering decisions* (wheelbase, overhangs, greenhouse, stance) and the studio lofts the surfaces.
 
@@ -43,6 +43,13 @@ included; every surface is generated parametrically.
   blueprint grid), and share links that encode the entire design in the URL.
 - **Studio library** — named saves with thumbnails in localStorage, plus import/export for moving
   designs between machines.
+- **Ownership hierarchy** — set your designer name (👤) and every design you save is owned by it.
+  Designs shared by link or spec file fork into the recipient's own credited copy when they save
+  (`based on …` lineage), and an owner can hand a design to a new maintainer with **Transfer** in
+  the Library. Cooperative workflow, not cryptographic security.
+- **Private / offline use** — `offline.html` is the entire studio in one self-contained file:
+  download it, double-click it, design with no server, CDN, or network at all. Regenerate it after
+  source edits with `node car-studio/build-offline.mjs`.
 - **Viewport** — orbit/pan/zoom, orthographic side/front/top/rear views, turntable, 1.75 m scale
   figure, live dimension lines, 1 m floor grid. Keyboard: `1–5` views, `T` turntable,
   `H` figure, `D` dimensions, `G` grid.
@@ -61,7 +68,7 @@ entire deployment.
 
 ## Verification
 
-Tested with an automated Playwright suite (21 checks): every segment builds NaN-free geometry with
+Tested with an automated Playwright suite (25 checks): every segment builds NaN-free geometry with
 sane metrics, every parameter survives min/max extremes, all wheel/spoiler/fascia options build,
 OBJ/spec/blueprint/share-link exports round-trip, the library persists and reloads, tooltips and
-design review respond, and the layout holds on narrow viewports — all with zero console errors.
+design review respond, ownership stamping and fork-with-lineage behave, the offline single-file build boots from file://, and the layout holds on narrow viewports — all with zero console errors.
