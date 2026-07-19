@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>kkasra10 — projects</title>
+<style>
+  :root {
+    --bg: #101318; --panel: #171b22; --panel-2: #1d222b; --line: #2a303b;
+    --text: #d7dce4; --dim: #8b93a1; --accent: #e2a33c; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 20px 60px;
+  }
+  header { max-width: 880px; width: 100%; margin-bottom: 34px; }
+  h1 { font-size: 26px; letter-spacing: .3px; }
+  h1 .mark { color: var(--accent); margin-right: 8px; }
+  .tag { color: var(--dim); margin-top: 6px; font-size: 13.5px; }
+  main {
+    max-width: 880px; width: 100%;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+  }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; transition: border-color .15s, transform .15s;
+  }
+  a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  a.card.featured { grid-column: 1 / -1; background: linear-gradient(135deg, #1b1a14, var(--panel)); }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  a.card:hover h2 { color: var(--accent); }
+  .card p { font-size: 12.5px; color: var(--dim); }
+  .card .k {
+    display: inline-block; margin-top: 10px; font-size: 10.5px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--blue);
+  }
+  footer { margin-top: 40px; font-size: 12px; color: var(--dim); }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="mark">◧</span>kkasra10</h1>
+  <p class="tag">Small tools and experiments, all running right in your browser. There is a clue in the username.</p>
+</header>
+
+<main>
+  <a class="card featured" href="car-studio/">
+    <h2>ConceptForge — Car Design Studio</h2>
+    <p>Design dimensionally credible 3D car concepts without knowing how to model: seven real-world
+       vehicle templates, engineering sliders in real millimetres, live drag/mass/angle estimates,
+       a design-review copilot, and OBJ / spec-sheet / blueprint exports.</p>
+    <span class="k">3D studio</span>
+  </a>
+
+  <a class="card" href="latex.html">
+    <h2>LaTeX Editor</h2>
+    <p>Write LaTeX with instant preview, auto-save and your own custom shortcut expansions.</p>
+    <span class="k">Writing</span>
+  </a>
+
+  <a class="card" href="calendar.html">
+    <h2>Calendar</h2>
+    <p>A clean calendar that lives at a URL instead of in an app store.</p>
+    <span class="k">Utility</span>
+  </a>
+
+  <a class="card" href="koogle.html">
+    <h2>Koogle</h2>
+    <p>A search page with a suspiciously familiar face.</p>
+    <span class="k">Fun</span>
+  </a>
+
+  <a class="card" href="instagram-timeline/">
+    <h2>Instagram Timeline Video</h2>
+    <p>Turn a timeline of moments into a scrolling video story.</p>
+    <span class="k">Media</span>
+  </a>
+
+  <a class="card" href="module_maker/download.html">
+    <h2>module-maker</h2>
+    <p>Download page for the module-maker tool.</p>
+    <span class="k">Download</span>
+  </a>
+
+  <a class="card" href="index/">
+    <h2>The original page</h2>
+    <p>Where this site began. Enter at your own risk.</p>
+    <span class="k">Legacy</span>
+  </a>
+</main>
+
+<footer>
+  Built by <a href="https://github.com/kkasra10">kkasra10</a> · source in the
+  <a href="https://github.com/kkasra10/kkasra10.github.io">site repository</a>
+</footer>
+</body>
+</html>
