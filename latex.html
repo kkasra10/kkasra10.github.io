@@ -3851,7 +3851,7 @@ function buildSidebar() {
       const preview = document.createElement('div');
       preview.className = 'symbol-preview';
       try {
-        preview.innerHTML = katex.renderToString(item.render, {
+        preview.innerHTML = renderer.render(item.render, {
           throwOnError: false, displayMode: !!item.dm, strict: false,
         });
       } catch (_) {
@@ -3921,7 +3921,7 @@ function makeRecentBtn(item) {
   const preview = document.createElement('div');
   preview.className = 'symbol-preview';
   try {
-    preview.innerHTML = katex.renderToString(item.render || item.cmd, {
+    preview.innerHTML = renderer.render(item.render || item.cmd, {
       throwOnError: false, displayMode: !!item.dm, strict: false,
     });
   } catch(_) { preview.textContent = item.label || item.cmd; }
@@ -4032,6 +4032,18 @@ function insertCommand(cmd) {
   document.getElementById('tabAnimate').click();
 }
 
+// ── Renderer abstraction ──────────────────────────────────────────────────────
+// The single seam between the app and the math engine. Every visual render goes
+// through renderer.render(latex, options). To swap engines (MathJax, a WASM TeX
+// build, a server compile) you add an adapter with this same shape and reassign
+// `renderer` — no call site changes. Adapters stay thin: options pass straight
+// through to the engine, so behaviour is identical to calling it directly.
+const KaTeXRenderer = {
+  name: 'katex',
+  render(latex, options) { return katex.renderToString(latex, options); },
+};
+let renderer = KaTeXRenderer;
+
 // ── Render ───────────────────────────────────────────────────────────────────
 // KaTeX doesn't implement every amsmath/IEEE environment. Rewrite the
 // unsupported ones to the closest supported equivalent so they render
@@ -4055,7 +4067,7 @@ function normalizeLatexEnvs(src) {
 }
 
 function renderLatex(src) {
-  return katex.renderToString(normalizeLatexEnvs(src), {
+  return renderer.render(normalizeLatexEnvs(src), {
     throwOnError: false, displayMode: true, strict: false, errorColor: '#ef4444',
   });
 }
@@ -4784,18 +4796,18 @@ function pbRenderMixedLine(line) {
   // $$...$$ → display math
   if (/^\$\$.+\$\$$/.test(line.trim())) {
     const math = line.trim().slice(2, -2);
-    return katex.renderToString(math, { throwOnError: false, displayMode: true, strict: false });
+    return renderer.render(math, { throwOnError: false, displayMode: true, strict: false });
   }
   // No $...$ and no plain words → pure LaTeX, render display
   const hasDollar = line.includes('$');
   if (!hasDollar && !pbHasPlainText(line) && line.includes('\\')) {
-    return katex.renderToString(line.trim(), { throwOnError: false, displayMode: true, strict: false });
+    return renderer.render(line.trim(), { throwOnError: false, displayMode: true, strict: false });
   }
   // Mixed: split on $...$ inline math
   const parts = line.split(/(\$[^$]+\$)/g);
   return parts.map(part => {
     if (part.startsWith('$') && part.endsWith('$') && part.length > 2) {
-      return katex.renderToString(part.slice(1,-1), { throwOnError: false, displayMode: false, strict: false });
+      return renderer.render(part.slice(1,-1), { throwOnError: false, displayMode: false, strict: false });
     }
     return part.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }).join('');
@@ -4809,7 +4821,7 @@ function pbRenderContent(content, displayMode) {
   lines.forEach(line => {
     if (!line.trim()) { out += '<div style="height:6px"></div>'; return; }
     if (displayMode) {
-      out += katex.renderToString(line, { throwOnError: false, displayMode: true, strict: false });
+      out += renderer.render(line, { throwOnError: false, displayMode: true, strict: false });
     } else {
       out += '<div style="line-height:1.8">' + pbRenderMixedLine(line) + '</div>';
     }
@@ -5237,7 +5249,7 @@ function buildCalcSymBar() {
     btn.className = 'csb';
     btn.dataset.op = def.op;
     if (typeof katex !== 'undefined') {
-      try { btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false }); }
+      try { btn.innerHTML = renderer.render(def.lx, { throwOnError:false, strict:false }); }
       catch(_) { btn.textContent = def.op; }
     } else { btn.textContent = def.op; }
     btn.addEventListener('click', () => applySymbolic(def.op, btn));
@@ -5253,7 +5265,7 @@ function makeCalcBtn(def) {
   if (def.ca)   btn.dataset.ca = def.ca;
   if (def.span) btn.style.gridColumn = 'span ' + def.span;
   if (def.lx && typeof katex !== 'undefined') {
-    try { btn.innerHTML = katex.renderToString(def.lx, { throwOnError:false, strict:false, displayMode:false }); }
+    try { btn.innerHTML = renderer.render(def.lx, { throwOnError:false, strict:false, displayMode:false }); }
     catch(_) { btn.textContent = def.text || def.lx; }
   } else { btn.textContent = def.text || def.lx || ''; }
   return btn;
@@ -5325,7 +5337,7 @@ function updateCalcDisplay() {
   document.getElementById('calcExpr').textContent = calcExprStr || '0';
   const kw = document.getElementById('calcKatex');
   if (kw && calcExprStr && typeof katex !== 'undefined') {
-    try { kw.innerHTML = katex.renderToString(calcToLatexStr(calcExprStr), { throwOnError:false, strict:false }); }
+    try { kw.innerHTML = renderer.render(calcToLatexStr(calcExprStr), { throwOnError:false, strict:false }); }
     catch(_) { kw.textContent = ''; }
   } else if (kw) { kw.textContent = ''; }
   if (!calcExprStr) { document.getElementById('calcResult').textContent = ''; return; }
@@ -5719,7 +5731,7 @@ async function animExecLine(line) {
       el.style.transform = `translate(-50%,-50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)`;
       
       try {
-        el.innerHTML = katex.renderToString(latex, { throwOnError: false, displayMode: false, strict: false });
+        el.innerHTML = renderer.render(latex, { throwOnError: false, displayMode: false, strict: false });
       } catch(_) { el.textContent = latex; }
       // ID badge
       const badge = document.createElement('div');
