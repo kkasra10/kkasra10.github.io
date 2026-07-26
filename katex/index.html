@@ -2010,21 +2010,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ── Unified edit transaction ──────────────────────────────────────────────────
+// Every programmatic edit to #latexInput funnels through here so the five steps
+// (replace range → move caret → focus → render → push history → autosave) always
+// happen together, exactly once. Callers decide WHAT to insert and WHERE the
+// caret lands (e.g. brace-aware placement); this guarantees undo and autosave can
+// never desync from the text. `caret` is an absolute offset, or a [start, end]
+// pair to leave a selection; omit it to land after the inserted text.
+function applyEdit(opts) {
+  const ta = document.getElementById('latexInput');
+  ta.value = ta.value.slice(0, opts.from) + opts.text + ta.value.slice(opts.to);
+  const caret = opts.caret === undefined ? opts.from + opts.text.length : opts.caret;
+  if (Array.isArray(caret)) ta.setSelectionRange(caret[0], caret[1]);
+  else ta.setSelectionRange(caret, caret);
+  ta.focus();
+  render();
+  histPush(ta.value);
+  autoSaveInput(ta.value);
+}
+
 // ── Insert symbol at cursor ──────────────────────────────────────────────────
 function insertSymbol(cmd) {
   const ta = document.getElementById('latexInput');
   const start = ta.selectionStart;
   const end   = ta.selectionEnd;
-  ta.value = ta.value.slice(0, start) + cmd + ta.value.slice(end);
   const braceIdx = cmd.indexOf('{}');
-  if (braceIdx !== -1) {
-    const pos = start + braceIdx + 1;
-    ta.setSelectionRange(pos, pos);
-  } else {
-    ta.setSelectionRange(start + cmd.length, start + cmd.length);
-  }
-  ta.focus();
-  render();
+  const caret = braceIdx !== -1 ? start + braceIdx + 1 : start + cmd.length;
+  applyEdit({ from: start, to: end, text: cmd, caret });
 }
 
 // ── Insert command into script ───────────────────────────────────────────────
@@ -2254,16 +2266,11 @@ function buildTemplatesPanel() {
     card.addEventListener('mousedown', e => {
       e.preventDefault();
       const ta = document.getElementById('latexInput');
-      const val = ta.value;
       const start = ta.selectionStart;
-      const sep = (val.length > 0 && start === val.length) ? '\n' : '';
-      ta.value = val.slice(0, start) + sep + tpl.src + val.slice(ta.selectionEnd);
-      const pos = start + sep.length + tpl.src.length;
-      ta.setSelectionRange(pos, pos);
-      ta.focus();
-      render();
-      histPush(ta.value);
-      autoSaveInput(ta.value);
+      const end   = ta.selectionEnd;
+      const sep = (ta.value.length > 0 && start === ta.value.length) ? '\n' : '';
+      const text = sep + tpl.src;
+      applyEdit({ from: start, to: end, text, caret: start + text.length });
       document.getElementById('templatesPanel').classList.add('hidden');
     });
     panel.appendChild(card);
@@ -2324,19 +2331,9 @@ document.getElementById('colorApplyBtn').addEventListener('click', () => {
     insertion = `\\textcolor{${activeColor}}{}`;
   }
 
-  ta.value = ta.value.slice(0, start) + insertion + ta.value.slice(end);
-
   // Place cursor inside the {} if nothing was selected
-  if (selected.length === 0) {
-    const pos = start + insertion.length - 1;
-    ta.setSelectionRange(pos, pos);
-  } else {
-    const pos = start + insertion.length;
-    ta.setSelectionRange(pos, pos);
-  }
-
-  ta.focus();
-  render();
+  const caret = selected.length === 0 ? start + insertion.length - 1 : start + insertion.length;
+  applyEdit({ from: start, to: end, text: insertion, caret });
 });
 
 // ── Size wrap buttons ─────────────────────────────────────────────────────────
@@ -2353,13 +2350,8 @@ document.querySelectorAll('.size-wrap-btn').forEach(btn => {
     } else {
       insertion = `{\\${size} }`;
     }
-    ta.value = ta.value.slice(0, start) + insertion + ta.value.slice(end);
-    const pos = selected.length > 0 ? start + insertion.length : start + insertion.length - 1;
-    ta.setSelectionRange(pos, pos);
-    ta.focus();
-    render();
-    histPush(ta.value);
-    autoSaveInput(ta.value);
+    const caret = selected.length > 0 ? start + insertion.length : start + insertion.length - 1;
+    applyEdit({ from: start, to: end, text: insertion, caret });
   });
 });
 
@@ -2400,9 +2392,7 @@ function applyHAlignSmart(align) {
     const clean = line.replace(/%<(left|center|right)>/g, '').trimEnd();
     return clean + ' %<' + align + '>';
   }).join('\n');
-  ta.value = val.slice(0, lineStart) + updated + val.slice(end);
-  ta.setSelectionRange(lineStart, lineStart + updated.length);
-  render(); histPush(ta.value); autoSaveInput(ta.value);
+  applyEdit({ from: lineStart, to: end, text: updated, caret: [lineStart, lineStart + updated.length] });
   updateGapDisplay();
 }
 
@@ -2429,16 +2419,13 @@ function updateGapDisplay() {
 }
 
 function stepLineGap(delta) {
-  const ta = document.getElementById('latexInput');
-  const { val, start, end, line } = getCursorLineInfo();
+  const { start, end, line } = getCursorLineInfo();
   const m    = line.match(/%<gap:(\d+)>/);
   const prev = m ? parseInt(m[1], 10) : 0;
   const next = Math.max(0, prev + delta);
   let updated = line.replace(/%<gap:\d+>/g, '').trimEnd();
   if (next > 0) updated += ' %<gap:' + next + '>';
-  ta.value = val.slice(0, start) + updated + val.slice(end);
-  ta.setSelectionRange(start + updated.length, start + updated.length);
-  render(); histPush(ta.value); autoSaveInput(ta.value);
+  applyEdit({ from: start, to: end, text: updated, caret: start + updated.length });
   updateGapDisplay();
 }
 
