@@ -2247,6 +2247,22 @@ document.getElementById('redoBtn').addEventListener('click', () => {
   if (histIdx < histStack.length - 1) { histIdx++; applyHist(); }
 });
 
+// Keyboard undo/redo for the LaTeX box. Scoped to #latexInput so the Animate,
+// Calc, and Paper textareas keep their own native undo. preventDefault stops the
+// browser's native (stale) textarea undo from fighting our snapshot history.
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement !== document.getElementById('latexInput')) return;
+  if (!(e.metaKey || e.ctrlKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    if (histIdx > 0) { histIdx--; applyHist(); }
+  } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+    e.preventDefault();
+    if (histIdx < histStack.length - 1) { histIdx++; applyHist(); }
+  }
+});
+
 document.getElementById('latexInput').addEventListener('input', function() {
   render();
   clearTimeout(histTimer);
