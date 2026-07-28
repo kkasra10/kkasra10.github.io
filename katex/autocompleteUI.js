@@ -20,6 +20,7 @@
   var results = [];      // current CompletionItems (kept for later phases)
   var active = -1;       // highlighted index
   var visible = false;
+  var currentCtx = null; // last context from ContextEngine (owns the edit range)
 
   // ── caret pixel coordinates via the mirror-div technique ────────────────────
   var MIRROR_PROPS = [
@@ -169,6 +170,7 @@
     var ctx = ContextEngine.fromTextarea(ta);
     var found = AutocompleteEngine.complete(ctx);
     if (!found || found.length === 0) { hide(); return; }
+    currentCtx = ctx;   // the edit range comes solely from ContextEngine
     results = found.length > MAX_ROWS ? found.slice(0, MAX_ROWS) : found;
     active = 0;
     visible = true;
@@ -183,6 +185,25 @@
     updateActiveClasses();
   }
 
+  // Accept the highlighted item. The replacement range comes ENTIRELY from
+  // ContextEngine (currentCtx); the popup never computes an edit range. All
+  // editing flows through the shared applyEdit() seam → one render, one history
+  // entry, focus retained.
+  function accept() {
+    if (!visible || active < 0 || active >= results.length || !currentCtx) return;
+    var item = results[active];
+    var text = item.insertText;
+    if (typeof text !== 'string') return;
+    var from = currentCtx.replaceStart;
+    var to = currentCtx.replaceEnd;
+    // Caret placement mirrors insertSymbol: inside the first "{}" when present,
+    // otherwise just after the inserted text. (No tab stops / placeholders yet.)
+    var braceIdx = text.indexOf('{}');
+    var caret = braceIdx !== -1 ? from + braceIdx + 1 : from + text.length;
+    hide();                                        // close popup before editing
+    applyEdit({ from: from, to: to, text: text, caret: caret });
+  }
+
   // ── event handlers ──────────────────────────────────────────────────────────
   function onInput() { recompute(); }
 
@@ -192,8 +213,9 @@
     if (!visible) return;
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); accept(); }
+    else if (e.key === 'Tab') { e.preventDefault(); accept(); }
     else if (e.key === 'Escape') { e.preventDefault(); hide(); }
-    // Enter / Tab intentionally NOT handled — reserved for the acceptance phase.
   }
 
   function onBlur() { hide(); }
@@ -204,9 +226,10 @@
   }
 
   function onRowClick(e) {
-    // Read-only phase: select internally, keep the popup open, do NOT insert.
+    // Accept on click. mousedown preventDefault (on the popup) already kept the
+    // textarea focused, so applyEdit lands in the right place.
     var idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
-    if (!isNaN(idx)) { active = idx; updateActiveClasses(); }
+    if (!isNaN(idx)) { active = idx; accept(); }
   }
 
   // ── init ────────────────────────────────────────────────────────────────────
