@@ -31,8 +31,13 @@
     cursers:   startCursors,
     arithmetiC: startComicSans,
   };
-  var WORDS = Object.keys(EFFECTS);
-  var MAXLEN = ALL.length; // 9; all effect words are <= this
+  // Normalize keys to lowercase (the keystroke buffer is lowercased) and size
+  // the buffer to the LONGEST word, so long/mixed-case keywords still match.
+  var NORM = {};
+  Object.keys(EFFECTS).forEach(function (k) { NORM[k.toLowerCase()] = EFFECTS[k]; });
+  var WORDS = Object.keys(NORM);
+  var MAXLEN = ALL.length;
+  WORDS.forEach(function (w) { if (w.length > MAXLEN) MAXLEN = w.length; });
 
   var started = {};
   var buf = '';
@@ -48,7 +53,7 @@
     if (started[word]) return;
     started[word] = true;
     ensureBase();
-    try { EFFECTS[word](); } catch (_) {}
+    try { NORM[word](); } catch (_) {}
   }
 
   function endsWith(s, w) { return s.length >= w.length && s.slice(-w.length) === w; }
