@@ -1486,6 +1486,37 @@
       .output-area { padding: 28px 32px; }
       .symbol-grid { grid-template-columns: repeat(3, 1fr); }
     }
+
+    /* ── Autocomplete popup (read-only display) ── */
+    .ac-popup {
+      position: absolute; z-index: 9999; display: none;
+      min-width: 220px; max-width: 440px; max-height: 280px; overflow-y: auto;
+      padding: 4px; background: #ffffff;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 12.5px; line-height: 1.4;
+    }
+    .ac-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 8px; border-radius: 6px; cursor: pointer; color: #111827;
+    }
+    .ac-row.ac-active { background: #ebf0fd; }
+    .ac-preview { flex: 0 0 auto; min-width: 20px; text-align: center; color: #111827; }
+    .ac-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+    .ac-cmd { color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ac-detail { color: #6b7280; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ac-cat {
+      flex: 0 0 auto; color: #9ca3af; font-size: 9.5px;
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    body.dark .ac-popup { background: #1f2937; border-color: #374151; box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+    body.dark .ac-row { color: #f9fafb; }
+    body.dark .ac-row.ac-active { background: #1e3a5f; }
+    body.dark .ac-preview { color: #f9fafb; }
+    body.dark .ac-cmd { color: #f9fafb; }
+    body.dark .ac-detail { color: #9ca3af; }
+    body.dark .ac-cat { color: #6b7280; }
   </style>
 </head>
 <body>
@@ -1832,6 +1863,7 @@ exit 2 bottom 500"></textarea>
   <script src="autocomplete.js"></script>
   <script src="katexProvider.js"></script>
   <script src="matcher.js"></script>
+  <script src="autocompleteUI.js"></script>
 <script>
 
 // ── Build sidebar ────────────────────────────────────────────────────────────
