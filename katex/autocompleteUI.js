@@ -202,6 +202,7 @@
     var caret = braceIdx !== -1 ? from + braceIdx + 1 : from + text.length;
     hide();                                        // close popup before editing
     applyEdit({ from: from, to: to, text: text, caret: caret });
+    recompute();                                   // update suggestions at the new caret
   }
 
   // ── event handlers ──────────────────────────────────────────────────────────
