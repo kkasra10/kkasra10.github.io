@@ -20,16 +20,16 @@
   var ALL = 'trollmode';
 
   var EFFECTS = {
-    rainbow:   startRainbowRain,
-    explode:   explodeCharacters,
+    iminamathclass:   startRainbowRain,
+    woww:   explodeCharacters,
     tornado:   startTornado,
-    storm:     startEmojiStorm,
-    quake:     startQuake,
-    static:    startTVPause,
-    melt:      startMelt,
-    gravity:   startGravity,
-    cursors:   startCursors,
-    comicsans: startComicSans,
+    mathsucks:     startEmojiStorm,
+    AINTNOWAY:     startQuake,
+    piIS3:    startTVPause,
+    calculusahh:      startMelt,
+    twinprimeconjecture:   startGravity,
+    cursers:   startCursors,
+    arithmetiC: startComicSans,
   };
   var WORDS = Object.keys(EFFECTS);
   var MAXLEN = ALL.length; // 9; all effect words are <= this
