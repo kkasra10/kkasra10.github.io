@@ -47,6 +47,10 @@ function applySettings() {
   const spacing = s.lineSpacing !== undefined ? s.lineSpacing : 12;
   document.getElementById('spacingSlider').value = spacing;
   applyLineSpacing(spacing);
+  // Background color of the output area
+  const bg = s.bgColor || '';
+  document.getElementById('settingBgColor').value = bg || '#ffffff';
+  document.getElementById('output').style.background = bg;
 }
 
 document.getElementById('spacingSlider').addEventListener('input', function() {
@@ -74,6 +78,17 @@ document.getElementById('settingAutoSave').addEventListener('change', function()
   saveSettings({ autoSave: this.checked });
   if (!this.checked) saveSettings({ savedInput: '' });
   if (typeof syncShortcutPersistence === 'function') syncShortcutPersistence();
+});
+
+document.getElementById('settingBgColor').addEventListener('input', function() {
+  document.getElementById('output').style.background = this.value;
+  saveSettings({ bgColor: this.value });
+});
+
+document.getElementById('settingBgReset').addEventListener('click', function() {
+  document.getElementById('output').style.background = '';
+  document.getElementById('settingBgColor').value = '#ffffff';
+  saveSettings({ bgColor: '' });
 });
 
 // Toggle settings panel open/close
