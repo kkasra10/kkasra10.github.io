@@ -82,20 +82,37 @@
   .guides i.vert { left: 50%; top: 0; bottom: 0; right: auto; width: 1px; height: auto; background: var(--guide); }
   .ghost {
     pointer-events: none; display: grid; place-items: center; color: #000; opacity: .085;
+    overflow: hidden; padding: 0 4%; text-align: center;
     font-family: Georgia, "Times New Roman", serif; line-height: 1; user-select: none;
   }
   canvas.ink { touch-action: none; cursor: crosshair; display: block; }
   .cap {
-    display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    margin-top: 6px; font-size: 12px; color: var(--dim);
+    display: flex; align-items: center; gap: 4px;
+    margin-top: 5px; font-size: 12px; color: var(--dim);
   }
-  .cap .name { font-weight: 600; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cap input.name {
+    flex: 1 1 auto; min-width: 0; font: 600 12px/1.4 inherit; color: var(--text);
+    background: transparent; border: 1px solid transparent; border-radius: 5px;
+    padding: 2px 5px; text-overflow: ellipsis;
+  }
+  .cap input.name::placeholder { color: var(--dim); font-weight: 400; font-style: italic; }
+  .cap input.name:hover { border-color: var(--line); }
+  .cap input.name:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
   .cap .acts { display: flex; gap: 2px; flex: 0 0 auto; opacity: 0; transition: opacity .12s; }
+  .cell.naming .cap .acts { display: none; }
   .cell:hover .cap .acts, .cell.active .cap .acts { opacity: 1; }
   .cap .acts button {
     padding: 2px 6px; font-size: 12px; line-height: 1.2; background: transparent; border-color: transparent; color: var(--dim);
   }
   .cap .acts button:hover { color: var(--accent); border-color: var(--line); }
+
+  .addtile {
+    width: 100%; aspect-ratio: 1 / 1; display: flex; flex-direction: column; gap: 4px;
+    align-items: center; justify-content: center; background: transparent; color: var(--dim);
+    border: 1px dashed var(--line); border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .addtile b { font-size: 26px; font-weight: 400; line-height: 1; }
+  .addtile:hover { border-color: var(--accent); color: var(--accent); background: rgba(226,163,60,.05); }
 
   .empty-note { color: var(--dim); font-size: 13px; padding: 18px 4px; }
 
@@ -110,6 +127,11 @@
     padding: 16px; width: min(640px, 100%); max-height: 100%; overflow: auto;
   }
   .sheet h3 { font-size: 15px; margin-bottom: 2px; }
+  .sheet input.mname {
+    font: 600 16px/1.4 inherit; color: var(--text); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; width: 100%;
+  }
+  .sheet input.mname:focus { outline: none; border-color: var(--accent); }
   .sheet .sub { font-size: 12px; color: var(--dim); margin-bottom: 12px; }
   .bigpad { width: 100%; max-width: 560px; margin: 0 auto; }
   .sheet .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
@@ -134,23 +156,27 @@
 <header>
   <a class="back" href="../">&larr; kkasra10</a>
   <h1><span class="mark">&#9635;</span>customALPH</h1>
-  <p class="tag">Sketch one letter per box, then save the whole set as PNGs. Everything runs in your
-     browser &mdash; nothing is uploaded, and your work is kept in this browser's local storage.</p>
+  <p class="tag">Add a box, name it whatever you like, sketch the letter in it &mdash; then save the
+     whole set as PNGs. Keep adding boxes as your alphabet grows. Everything runs in your browser:
+     nothing is uploaded, and your work is kept in this browser's local storage.</p>
 </header>
 
 <section class="bar">
   <div class="grp wide">
-    <span class="lbl">Alphabet</span>
-    <input type="text" id="setInput" class="grow" spellcheck="false" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
-    <button id="applySet">Apply</button>
+    <span class="lbl">Add boxes</span>
+    <input type="text" id="setInput" class="grow" spellcheck="false"
+           placeholder="characters, or space-separated names&hellip;">
+    <button class="primary" id="addSet">+ Add</button>
     <button class="mini" data-preset="upper">A&ndash;Z</button>
     <button class="mini" data-preset="lower">a&ndash;z</button>
     <button class="mini" data-preset="digits">0&ndash;9</button>
     <button class="mini" data-preset="punct">.,?!</button>
-    <button class="mini" id="addBox">+ box</button>
-    <p class="hint">One box per character. Type <b>spaces</b> to use whole words as box names
-       (<code>alef beh pe</code>), otherwise every character gets its own box. Boxes keep their
-       drawings when you re-apply a set.</p>
+    <button class="mini" id="addBox">+ blank</button>
+    <button class="mini" id="replaceSet" title="Replace every box with what is typed above">Replace all</button>
+    <p class="hint">Boxes are added to the end, so you can keep adding as you go. Typing
+       <code>ABC</code> adds three boxes; typing <b>spaces</b> adds one box per word
+       (<code>alef beh pe</code>). <b>Every name is editable</b> &mdash; click the name under a box
+       and type whatever you like.</p>
   </div>
 
   <div class="grp">
@@ -202,6 +228,7 @@
 </div>
 
 <footer>
+  Click a name under any box to rename it; the &plus; tile at the end adds another box.
   Draw with a mouse, finger or stylus (pen pressure changes stroke weight). Shortcuts:
   <kbd>B</kbd> pen, <kbd>E</kbd> eraser, <kbd>[</kbd> / <kbd>]</kbd> size,
   <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo, <kbd>Esc</kbd> close. &middot;
@@ -211,8 +238,9 @@
 
 <div id="modal">
   <div class="sheet">
-    <h3 id="mTitle">A</h3>
-    <p class="sub">Draw large here &mdash; it is the same box, just bigger.</p>
+    <h3>Box name</h3>
+    <input type="text" id="mName" class="mname" spellcheck="false" placeholder="name this box&hellip;">
+    <p class="sub" style="margin-top:8px">Draw large here &mdash; it is the same box, just bigger.</p>
     <div class="bigpad">
       <div class="pad" id="mPad">
         <div class="guides" id="mGuides"></div>
@@ -224,7 +252,6 @@
       <button id="mUndo">&#8630; Undo</button>
       <button id="mRedo">&#8631; Redo</button>
       <button id="mClear">Clear box</button>
-      <button id="mRename">Rename</button>
       <button id="mDelete">Remove box</button>
       <button id="mPng">&#8595; PNG</button>
       <button id="mSvg">&#8595; SVG</button>
@@ -267,7 +294,7 @@ var state = {
 };
 
 var uid = 0;
-function newCell(label) { return { id: 'c' + (++uid), label: label, strokes: [], redo: [] }; }
+function newCell(label) { return { id: 'c' + (++uid), label: label == null ? '' : String(label), strokes: [], redo: [] }; }
 function cellById(id) { for (var i = 0; i < state.cells.length; i++) if (state.cells[i].id === id) return state.cells[i]; return null; }
 function activeCell() { return cellById(state.activeId); }
 function isEmpty(cell) { return cell.strokes.length === 0; }
@@ -407,6 +434,13 @@ function buildGrid() {
   var grid = $('#grid');
   grid.innerHTML = '';
   for (var i = 0; i < state.cells.length; i++) grid.appendChild(buildCell(state.cells[i]));
+  var tile = document.createElement('button');
+  tile.className = 'addtile';
+  tile.type = 'button';
+  tile.title = 'Add another box';
+  tile.innerHTML = '<b>+</b><span>new box</span>';
+  tile.addEventListener('click', function () { addBlankBox(); });
+  grid.appendChild(tile);
   $('#emptyNote').hidden = state.cells.length > 0;
   applyView();
 }
@@ -422,15 +456,24 @@ function buildCell(cell) {
       '<canvas class="ink"></canvas>' +
     '</div>' +
     '<div class="cap">' +
-      '<span class="name"></span>' +
+      '<input class="name" type="text" spellcheck="false" placeholder="name\u2026">' +
       '<span class="acts">' +
         '<button data-act="big" title="Open large editor">&#9974;</button>' +
-        '<button data-act="png" title="Download this box as PNG">&#8595;</button>' +
         '<button data-act="clear" title="Clear this box">&#9003;</button>' +
       '</span>' +
     '</div>';
-  el.querySelector('.name').textContent = cell.label;
+  var nameInput = el.querySelector('.name');
+  nameInput.value = cell.label;
+  nameInput.title = 'Click to rename this box';
+  nameInput.addEventListener('input', function () { rename(cell, nameInput.value, nameInput); });
+  nameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
+    e.stopPropagation();
+  });
+  nameInput.addEventListener('focus', function () { el.classList.add('naming'); });
+  nameInput.addEventListener('blur', function () { el.classList.remove('naming'); });
   el.querySelector('.ghost').textContent = cell.label;
+  fitGhost(el.querySelector('.ghost'));
   var canvas = el.querySelector('canvas');
   attachDrawing(canvas, function () { return cell; }, function () { refreshCell(cell); });
   el.querySelector('.acts').addEventListener('click', function (e) {
@@ -439,7 +482,6 @@ function buildCell(cell) {
     e.stopPropagation();
     var act = btn.dataset.act;
     if (act === 'big') openModal(cell.id);
-    else if (act === 'png') savePng(cell);
     else if (act === 'clear') clearCell(cell);
   });
   el.addEventListener('pointerdown', function () { setActive(cell.id); });
@@ -468,13 +510,20 @@ function setActive(id) {
   if (el) el.classList.add('active');
 }
 
+function fitGhost(ghost) {
+  if (!ghost) return;
+  var n = Math.max(1, Array.from(ghost.textContent || '').length);
+  var h = ghost.clientHeight || 120, w = ghost.clientWidth || 120;
+  ghost.style.fontSize = Math.max(9, Math.round(Math.min(h * 0.72, w * 1.5 / n))) + 'px';
+}
+
 function applyView() {
   document.documentElement.style.setProperty('--box', state.box + 'px');
   var i, guides = document.querySelectorAll('.guides'), ghosts = document.querySelectorAll('.ghost');
   for (i = 0; i < guides.length; i++) guides[i].style.display = state.guides ? '' : 'none';
   for (i = 0; i < ghosts.length; i++) {
     ghosts[i].style.display = state.ghost ? '' : 'none';
-    ghosts[i].style.fontSize = Math.round(ghosts[i].clientHeight * 0.72) + 'px';
+    fitGhost(ghosts[i]);
   }
 }
 
@@ -563,11 +612,53 @@ function clearCell(cell) {
   cell.strokes = [];
   touch(cell);
 }
+function rename(cell, label, from) {
+  cell.label = label;
+  var el = cellEl(cell);
+  if (el) {
+    var input = el.querySelector('.name');
+    if (input !== from) input.value = label;
+    var ghost = el.querySelector('.ghost');
+    ghost.textContent = label;
+    fitGhost(ghost);
+  }
+  if (modalCell && modalCell.id === cell.id) {
+    if ($('#mName') !== from) $('#mName').value = label;
+    $('#mGhost').textContent = label;
+    fitGhost($('#mGhost'));
+  }
+  save();
+}
+
+function addCells(labels, focusFirstName) {
+  var first = null;
+  for (var i = 0; i < labels.length; i++) {
+    var cell = newCell(labels[i]);
+    if (!first) first = cell;
+    state.cells.push(cell);
+  }
+  if (!first) return null;
+  buildGrid();
+  setActive(first.id);
+  var el = cellEl(first);
+  if (el) {
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (focusFirstName) {
+      var input = el.querySelector('.name');
+      input.focus();
+      input.select();
+    }
+  }
+  save();
+  return first;
+}
+
+function addBlankBox() { addCells([''], true); }
+
 function removeCell(cell) {
-  if (!isEmpty(cell) && !confirm('Remove the box "' + cell.label + '" and its drawing?')) return;
+  if (!isEmpty(cell) && !confirm('Remove the box "' + (cell.label || 'unnamed') + '" and its drawing?')) return;
   state.cells = state.cells.filter(function (c) { return c.id !== cell.id; });
   if (state.activeId === cell.id) state.activeId = state.cells.length ? state.cells[0].id : null;
-  syncSetInput();
   buildGrid();
   save();
 }
@@ -582,7 +673,7 @@ function parseSet(text) {
   return Array.from(trimmed);                          // otherwise one box per character
 }
 
-function applySet(labels) {
+function replaceSet(labels) {
   var pool = state.cells.slice(), next = [], i;
   for (i = 0; i < labels.length; i++) {
     var found = -1;
@@ -603,21 +694,20 @@ function applySet(labels) {
   return true;
 }
 
-function syncSetInput() {
-  var labels = state.cells.map(function (c) { return c.label; });
-  var multi = labels.some(function (l) { return Array.from(l).length !== 1; });
-  $('#setInput').value = multi ? labels.join(' ') : labels.join('');
-}
-
 /* ------------------------------------------------------------- file names */
 function fileName(cell, used, ext) {
-  var base = cell.label;
-  if (!/^[A-Za-z0-9_.-]+$/.test(base) || base === '.' || base === '..') {
-    base = Array.from(cell.label).map(function (ch) {
+  var raw = (cell.label || '').trim(), base;
+  var safe = raw.replace(/[^A-Za-z0-9_.-]+/g, '-').replace(/^[-.]+|-+$/g, '');
+  if (!raw) {
+    base = 'box-' + String(state.cells.indexOf(cell) + 1).padStart(2, '0');
+  } else if (safe && /[A-Za-z0-9_]/.test(safe)) {
+    base = safe.slice(0, 60);
+  } else {
+    base = Array.from(raw).map(function (ch) {
       return 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
     }).join('_');
   }
-  if (/^[a-z]+$/.test(cell.label) && cell.label !== cell.label.toUpperCase()) base = base + '_lc';
+  if (/^[a-z]+$/.test(raw)) base = base + '_lc';
   var name = base, n = 2;
   while (used[name + ext]) name = base + '-' + (n++);
   used[name + ext] = true;
@@ -640,8 +730,9 @@ function savePng(cell) {
   var o = exportOpts();
   var canvas = renderCell(cell, o.size, o);
   canvasBlob(canvas).then(function (blob) {
-    download(blob, fileName(cell, {}, '.png'));
-    toast('Saved ' + cell.label + '.png');
+    var name = fileName(cell, {}, '.png');
+    download(blob, name);
+    toast('Saved ' + name);
   });
 }
 
@@ -830,11 +921,11 @@ function openModal(id) {
   if (!cell) return;
   modalCell = cell;
   setActive(id);
-  $('#mTitle').textContent = 'Box  “' + cell.label + '”';
+  $('#mName').value = cell.label;
   $('#mGhost').textContent = cell.label;
   $('#modal').classList.add('open');
   requestAnimationFrame(function () {
-    $('#mGhost').style.fontSize = Math.round($('#mGhost').clientHeight * 0.72) + 'px';
+    fitGhost($('#mGhost'));
     $('#mGuides').style.display = state.guides ? '' : 'none';
     $('#mGhost').style.display = state.ghost ? '' : 'none';
     paintCanvas($('#mCanvas'), cell);
@@ -873,7 +964,7 @@ function save() {
 function load(data) {
   if (!data || !Array.isArray(data.cells)) return false;
   state.cells = data.cells.map(function (c) {
-    var cell = newCell(String(c.label == null ? '?' : c.label));
+    var cell = newCell(c.label == null ? '' : String(c.label));
     cell.strokes = Array.isArray(c.strokes) ? c.strokes.filter(function (s) { return s && Array.isArray(s.p) && s.p.length; }) : [];
     return cell;
   });
@@ -907,31 +998,46 @@ function setSize(n) {
 }
 
 function wire() {
-  $('#applySet').addEventListener('click', function () {
+  function typedLabels() {
     var labels = parseSet($('#setInput').value);
-    if (!labels.length) { toast('Type some characters first.'); return; }
-    if (labels.length > 400) { toast('That is more than 400 boxes — trimming to 400.'); labels = labels.slice(0, 400); }
-    if (applySet(labels)) toast(labels.length + ' boxes ready.');
-  });
+    if (!labels.length) { toast('Type some characters or names first.'); return null; }
+    if (state.cells.length + labels.length > 500) {
+      labels = labels.slice(0, Math.max(0, 500 - state.cells.length));
+      if (!labels.length) { toast('500 boxes is the limit.'); return null; }
+      toast('Trimmed to the 500-box limit.');
+    }
+    return labels;
+  }
+  function addTyped() {
+    var labels = typedLabels();
+    if (!labels) return;
+    addCells(labels, labels.length === 1);
+    $('#setInput').value = '';
+    toast('Added ' + labels.length + ' box' + (labels.length === 1 ? '' : 'es') + '.');
+  }
+
+  $('#addSet').addEventListener('click', addTyped);
   $('#setInput').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') $('#applySet').click();
+    if (e.key === 'Enter') { e.preventDefault(); addTyped(); }
+  });
+  $('#replaceSet').addEventListener('click', function () {
+    var labels = parseSet($('#setInput').value);
+    if (!labels.length) { toast('Type the set you want first.'); return; }
+    if (labels.length > 500) labels = labels.slice(0, 500);
+    if (replaceSet(labels)) {
+      $('#setInput').value = '';
+      toast(labels.length + ' boxes ready.');
+    }
   });
   document.querySelectorAll('[data-preset]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      $('#setInput').value = PRESETS[btn.dataset.preset];
-      $('#applySet').click();
+      var labels = Array.from(PRESETS[btn.dataset.preset]);
+      if (state.cells.length + labels.length > 500) { toast('500 boxes is the limit.'); return; }
+      addCells(labels, false);
+      toast('Added ' + labels.length + ' boxes.');
     });
   });
-  $('#addBox').addEventListener('click', function () {
-    var label = prompt('Name for the new box (a character or a word):', '');
-    if (label === null) return;
-    label = label.trim();
-    if (!label) return;
-    state.cells.push(newCell(label));
-    syncSetInput();
-    buildGrid();
-    save();
-  });
+  $('#addBox').addEventListener('click', addBlankBox);
 
   $('#toolPen').addEventListener('click', function () { setTool('pen'); });
   $('#toolEraser').addEventListener('click', function () { setTool('eraser'); });
@@ -979,7 +1085,6 @@ function wire() {
       var data;
       try { data = JSON.parse(txt); } catch (err) { toast('That file is not valid JSON.'); return; }
       if (!load(data)) { toast('That JSON is not a customALPH project.'); return; }
-      syncSetInput();
       syncControls();
       buildGrid();
       save();
@@ -999,19 +1104,12 @@ function wire() {
              fileName(modalCell, {}, '.svg'));
     toast('Saved as SVG.');
   });
-  $('#mRename').addEventListener('click', function () {
-    if (!modalCell) return;
-    var label = prompt('New name for this box:', modalCell.label);
-    if (label === null) return;
-    label = label.trim();
-    if (!label) return;
-    modalCell.label = label;
-    var el = cellEl(modalCell);
-    if (el) { el.querySelector('.name').textContent = label; el.querySelector('.ghost').textContent = label; }
-    $('#mTitle').textContent = 'Box  “' + label + '”';
-    $('#mGhost').textContent = label;
-    syncSetInput();
-    save();
+  $('#mName').addEventListener('input', function () {
+    if (modalCell) rename(modalCell, this.value, this);
+  });
+  $('#mName').addEventListener('keydown', function (e) {
+    e.stopPropagation();
+    if (e.key === 'Enter') this.blur();
   });
   $('#mDelete').addEventListener('click', function () {
     if (!modalCell) return;
@@ -1077,7 +1175,6 @@ function init() {
     state.cells = Array.from(PRESETS.upper).map(newCell);
     state.activeId = state.cells[0].id;
   }
-  syncSetInput();
   syncControls();
   wire();
   buildGrid();
