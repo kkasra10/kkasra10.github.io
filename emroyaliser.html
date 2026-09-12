@@ -94,6 +94,9 @@
 
   #fontnote{font-size:.75rem;margin-top:var(--s-1);color:var(--muted);min-height:1.2em}
   .sub{font-size:.72rem;color:var(--muted);margin:var(--s-1) 0 0}
+  #fontmsg{font-size:.78rem;margin:var(--s-3) 0 0;min-height:1.2em;color:var(--muted)}
+  #fontmsg.ok{color:var(--ok);font-weight:600}
+  #fontmsg.warn{color:var(--warn);font-weight:600}
   .sub a{color:var(--accent)}
   .addfont{margin-top:var(--s-4)}
   optgroup{font-style:normal;font-weight:700}
@@ -166,6 +169,7 @@ Kasra</textarea>
           <input type="file" id="fontfile" accept=".ttf,.otf,.woff,.woff2,font/*">
           <p class="sub">.ttf, .otf, .woff or .woff2 — stays on your machine.</p>
         </div>
+        <p id="fontmsg" role="status" aria-live="polite"></p>
         <div class="field">
           <span class="lbl">Style</span>
           <div class="toggles">
@@ -430,17 +434,17 @@ function loadGoogleFont(family, quiet){
        cannot tell a real webfont from a typo. Measure instead: if the family
        renders identically to every generic fallback, nothing arrived. */
     if(!installed(family)){
-      if(!quiet) say('Couldn\u2019t find “' + family + '” on Google Fonts. Check the spelling against fonts.google.com.');
+      if(!quiet) fsay('Couldn\u2019t find “' + family + '” on Google Fonts. Check the spelling against fonts.google.com.');
       return false;
     }
     addFont({ name:family, stack:'"' + family + '", sans-serif', generic:'sans-serif',
               ok:true, source:'google' });
     rememberGoogleFont(family);
-    if(!quiet) say('Added “' + family + '”.', true);
+    if(!quiet) fsay('Added “' + family + '”.', 'ok');
     return true;
   })['catch'](function(err){
     if(!quiet){
-      say(err.message === 'timeout'
+      fsay(err.message === 'timeout'
         ? 'Timed out fetching “' + family + '” from Google Fonts.'
         : 'Couldn\u2019t load “' + family + '”. Check the spelling on fonts.google.com, ' +
           'or whether your network allows Google Fonts.');
@@ -465,8 +469,8 @@ function rememberGoogleFont(family){
 
 $('gadd').addEventListener('click', function(){
   var v = $('gfont').value;
-  if(!v.trim()){ say('Type a family name first, e.g. Playfair Display.'); return; }
-  say('Loading “' + v.trim() + '”\u2026');
+  if(!v.trim()){ fsay('Type a family name first, e.g. Playfair Display.'); return; }
+  fsay('Loading “' + v.trim() + '”\u2026', '');
   loadGoogleFont(v).then(function(ok){ if(ok) $('gfont').value = ''; });
 });
 $('gfont').addEventListener('keydown', function(e){
@@ -484,9 +488,9 @@ $('fontfile').addEventListener('change', function(e){
     document.fonts.add(face);
     addFont({ name:name, stack:'"' + name + '", sans-serif', generic:'sans-serif',
               ok:true, source:'file' });
-    say('Loaded “' + name + '” from your machine.', true);
+    fsay('Loaded “' + name + '” from your machine.', 'ok');
   })['catch'](function(err){
-    say('That font file could not be read (' + err.message + ').');
+    fsay('That font file could not be read (' + err.message + ').');
   });
   e.target.value = '';
 });
@@ -680,6 +684,11 @@ function draw(){
 function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
 function say(msg, ok){ var s = $('status'); s.textContent = msg; s.className = ok ? 'ok' : ''; }
 
+/* Font feedback belongs beside the font controls. The export status line lives
+   at the bottom of a long panel, where a message about loading a font would
+   appear well outside the viewport. */
+function fsay(msg, state){ var m = $('fontmsg'); m.textContent = msg; m.className = state || 'warn'; }
+
 /* The visible preview is an <img>, not the canvas: an image element can be
    dragged straight into a Gmail compose window and right-click → "Copy image"
    puts a real bitmap on the clipboard. Both work even where the async
@@ -704,7 +713,7 @@ $('copy').addEventListener('click', function(){
       await navigator.clipboard.write([ new ClipboardItem({
         'image/png': new Promise(function(res){ cv.toBlob(res, 'image/png'); })
       }) ]);
-      say('Copied. Paste into the Gmail compose window with Ctrl/Cmd+V.', true);
+      say('Copied. Paste into the Gmail compose window with Ctrl/Cmd+V.', 'ok');
     }catch(e){
       say('Your browser blocked the copy (' + e.message + '). Drag the preview into Gmail ' +
           'instead, or right-click it and choose “Copy image”.');
@@ -717,7 +726,7 @@ $('download').addEventListener('click', function(){
   a.download = 'emroyaliser.png';
   a.href = cv.toDataURL('image/png');
   a.click();
-  say('Downloaded emroyaliser.png — drag it into Gmail, or use Insert photo.', true);
+  say('Downloaded emroyaliser.png — drag it into Gmail, or use Insert photo.', 'ok');
 });
 
 /* Start on an installed font so the first render is honest. */
