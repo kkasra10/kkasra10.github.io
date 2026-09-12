@@ -4,119 +4,313 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
 <title>kkasra10 — projects</title>
 <style>
+  /* ---- palette: light (default, fully defined) ---- */
   :root {
-    --bg: #101318; --panel: #171b22; --panel-2: #1d222b; --line: #2a303b;
-    --text: #d7dce4; --dim: #8b93a1; --accent: #e2a33c; --blue: #58a6ff;
+    --bg:        #f7f5f1;
+    --bg-grain:  #efece6;
+    --surface:   #fffefc;
+    --surface-2: #f3f0ea;
+    --line:      #e0dbd1;
+    --line-soft: #ebe7df;
+    --text:      #1d1c1a;
+    --text-2:    #4b4842;
+    --dim:       #7d786f;
+    --accent:    #b06a12;
+    --accent-2:  #8a5210;
+    --accent-wash: rgba(176,106,18,.07);
+    --ring:      #b06a12;
+    --shadow-1:  0 1px 2px rgba(31,26,17,.05), 0 1px 1px rgba(31,26,17,.04);
+    --shadow-2:  0 10px 24px -12px rgba(31,26,17,.22), 0 2px 6px -2px rgba(31,26,17,.10);
+
+    /* type scale (1.25 minor third off 15px) */
+    --t-xs:  0.6875rem;   /* 11    */
+    --t-sm:  0.8125rem;   /* 13    */
+    --t-md:  0.9375rem;   /* 15    */
+    --t-lg:  1.0625rem;   /* 17    */
+    --t-xl:  1.375rem;    /* 22    */
+    --t-2xl: clamp(1.75rem, 1.35rem + 1.7vw, 2.5rem);
+
+    /* spacing rhythm: 4px base */
+    --s-1: .25rem; --s-2: .5rem;  --s-3: .75rem; --s-4: 1rem;
+    --s-5: 1.5rem; --s-6: 2rem;   --s-7: 3rem;   --s-8: 4.5rem;
+
+    --radius: 14px;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+            "Liberation Mono", monospace;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ---- palette: dark ---- */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #101215;
+      --bg-grain:  #16191e;
+      --surface:   #171a1f;
+      --surface-2: #1c2027;
+      --line:      #282d36;
+      --line-soft: #21252c;
+      --text:      #e8e6e1;
+      --text-2:    #b9b6ae;
+      --dim:       #8b8880;
+      --accent:    #e0a54a;
+      --accent-2:  #f0bd6d;
+      --accent-wash: rgba(224,165,74,.09);
+      --ring:      #e0a54a;
+      --shadow-1:  0 1px 2px rgba(0,0,0,.4);
+      --shadow-2:  0 14px 30px -14px rgba(0,0,0,.75), 0 2px 8px -2px rgba(0,0,0,.5);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    background: var(--bg); color: var(--text); min-height: 100vh;
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 48px 20px 60px;
+    margin: 0;
+    background:
+      radial-gradient(1100px 520px at 50% -220px, var(--bg-grain), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: var(--t-md);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    padding: var(--s-8) var(--s-5) var(--s-7);
   }
-  header { max-width: 880px; width: 100%; margin-bottom: 34px; }
-  h1 { font-size: 26px; letter-spacing: .3px; }
-  h1 .mark { color: var(--accent); margin-right: 8px; }
-  .tag { color: var(--dim); margin-top: 6px; font-size: 13.5px; }
-  main {
-    max-width: 880px; width: 100%;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+  @media (max-width: 30rem) { body { padding: var(--s-6) var(--s-4) var(--s-6); } }
+
+  .wrap { width: 100%; max-width: 56rem; margin: 0 auto; }
+
+  /* ---- header ---- */
+  .masthead { margin-bottom: var(--s-7); }
+  .mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.25rem; height: 2.25rem; border-radius: 10px;
+    background: var(--accent-wash);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-size: 1.1rem; line-height: 1;
+    margin-bottom: var(--s-4);
   }
-  a.card {
-    display: block; text-decoration: none; color: inherit;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-    padding: 16px 18px; transition: border-color .15s, transform .15s;
+  h1 {
+    margin: 0;
+    font-size: var(--t-2xl);
+    font-weight: 600;
+    letter-spacing: -.022em;
+    line-height: 1.1;
   }
-  a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  a.card.featured { grid-column: 1 / -1; background: linear-gradient(135deg, #1b1a14, var(--panel)); }
-  .card h2 { font-size: 16px; margin-bottom: 4px; }
-  a.card:hover h2 { color: var(--accent); }
-  .card p { font-size: 12.5px; color: var(--dim); }
-  .card .k {
-    display: inline-block; margin-top: 10px; font-size: 10.5px; letter-spacing: 1px;
-    text-transform: uppercase; color: var(--blue);
+  .tag {
+    margin: var(--s-3) 0 0;
+    max-width: 46ch;
+    color: var(--text-2);
+    font-size: var(--t-lg);
+    line-height: 1.5;
+    text-wrap: pretty;
   }
-  footer { margin-top: 40px; font-size: 12px; color: var(--dim); }
-  footer a { color: var(--blue); text-decoration: none; }
+  .rule {
+    height: 1px; border: 0; margin: var(--s-6) 0 0;
+    background: linear-gradient(90deg, var(--line), transparent);
+  }
+
+  /* ---- grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: var(--s-4);
+    margin-top: var(--s-6);
+  }
+  @media (max-width: 26rem) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    position: relative;
+    display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--s-5) var(--s-5) var(--s-4);
+    box-shadow: var(--shadow-1);
+    transition: border-color .18s ease, box-shadow .22s ease,
+                transform .22s cubic-bezier(.2,.7,.3,1), background-color .18s ease;
+  }
+  /* left accent hairline that grows on hover */
+  .card::before {
+    content: ""; position: absolute; left: -1px; top: 1.1rem; bottom: 1.1rem;
+    width: 2px; border-radius: 2px;
+    background: var(--accent);
+    opacity: 0; transform: scaleY(.35); transform-origin: center;
+    transition: opacity .2s ease, transform .28s cubic-bezier(.2,.7,.3,1);
+  }
+  .card:hover, .card:focus-visible {
+    border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
+    box-shadow: var(--shadow-2);
+    transform: translateY(-3px);
+    background: color-mix(in oklab, var(--accent-wash) 55%, var(--surface));
+  }
+  .card:hover::before, .card:focus-visible::before { opacity: 1; transform: scaleY(1); }
+  .card:active { transform: translateY(-1px); }
+  .card:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  .card h2 {
+    margin: 0;
+    font-size: var(--t-lg);
+    font-weight: 600;
+    letter-spacing: -.012em;
+    line-height: 1.3;
+    transition: color .18s ease;
+  }
+  .card:hover h2, .card:focus-visible h2 { color: var(--accent); }
+  .card p {
+    margin: var(--s-2) 0 0;
+    color: var(--dim);
+    font-size: var(--t-sm);
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .k {
+    display: inline-block;
+    margin-top: var(--s-4);
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: var(--t-xs);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    padding: .2rem .6rem;
+  }
+
+  /* ---- featured ---- */
+  .card.featured {
+    grid-column: 1 / -1;
+    padding: var(--s-6);
+    background:
+      linear-gradient(135deg, var(--accent-wash), transparent 55%),
+      var(--surface);
+  }
+  .card.featured h2 { font-size: var(--t-xl); }
+  .card.featured p { font-size: var(--t-md); max-width: 62ch; }
+
+  /* ---- footer ---- */
+  footer {
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--line-soft);
+    color: var(--dim);
+    font-size: var(--t-sm);
+  }
+  footer a {
+    color: var(--accent-2);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+    padding-bottom: 1px;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  footer a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+    .card:hover, .card:focus-visible, .card:active { transform: none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1><span class="mark">◧</span>kkasra10</h1>
+<div class="wrap">
+
+<header class="masthead">
+  <span class="mark" aria-hidden="true">◧</span>
+  <h1>kkasra10</h1>
   <p class="tag">Small tools and experiments, all running right in your browser. There is a clue in the username.</p>
+  <hr class="rule">
 </header>
 
 <main>
-  <a class="card featured" href="car-studio-public/">
-    <h2>StudioTheMobile — Car Design Studio</h2>
-    <p>Design dimensionally credible 3D car concepts without knowing how to model: seven real-world
-       vehicle templates, engineering sliders in real millimetres, live drag/mass/angle estimates,
-       a design-review copilot, and OBJ / spec-sheet / blueprint exports. This is the public studio —
-       everything you make stays in your own browser.</p>
-    <span class="k">3D studio · public</span>
-  </a>
+  <div class="grid">
 
-  <a class="card" href="car-studio/">
-    <h2>StudioTheMobile — Private studio</h2>
-    <p>The owner's private workshop build. Independent code and storage from the public studio.</p>
-    <span class="k">3D studio · private</span>
-  </a>
+    <a class="card featured" href="car-studio-public/">
+      <h2>StudioTheMobile — Car Design Studio</h2>
+      <p>Design dimensionally credible 3D car concepts without knowing how to model: seven real-world
+         vehicle templates, engineering sliders in real millimetres, live drag/mass/angle estimates,
+         a design-review copilot, and OBJ / spec-sheet / blueprint exports. This is the public studio —
+         everything you make stays in your own browser.</p>
+      <span class="k">3D studio · public</span>
+    </a>
 
-  <a class="card" href="customALPH/">
-    <h2>customALPH</h2>
-    <p>Sketch your own alphabet one box at a time, then save every box as a PNG.</p>
-    <span class="k">Drawing</span>
-  </a>
+    <a class="card" href="car-studio/">
+      <h2>StudioTheMobile — Private studio</h2>
+      <p>The owner's private workshop build. Independent code and storage from the public studio.</p>
+      <span class="k">3D studio · private</span>
+    </a>
 
-  <a class="card" href="latex.html">
-    <h2>LaTeX Editor</h2>
-    <p>Write LaTeX with instant preview, auto-save and your own custom shortcut expansions.</p>
-    <span class="k">Writing</span>
-  </a>
+    <a class="card" href="customALPH/">
+      <h2>customALPH</h2>
+      <p>Sketch your own alphabet one box at a time, then save every box as a PNG.</p>
+      <span class="k">Drawing</span>
+    </a>
 
-  <a class="card" href="calendar.html">
-    <h2>Calendar</h2>
-    <p>A clean calendar that lives at a URL instead of in an app store.</p>
-    <span class="k">Utility</span>
-  </a>
+    <a class="card" href="latex.html">
+      <h2>LaTeX Editor</h2>
+      <p>Write LaTeX with instant preview, auto-save and your own custom shortcut expansions.</p>
+      <span class="k">Writing</span>
+    </a>
 
-  <a class="card" href="koogle.html">
-    <h2>Koogle</h2>
-    <p>A search page with a suspiciously familiar face.</p>
-    <span class="k">Fun</span>
-  </a>
+    <a class="card" href="calendar.html">
+      <h2>Calendar</h2>
+      <p>A clean calendar that lives at a URL instead of in an app store.</p>
+      <span class="k">Utility</span>
+    </a>
 
-  <a class="card" href="instagram-timeline/">
-    <h2>Instagram Timeline Video</h2>
-    <p>Turn a timeline of moments into a scrolling video story.</p>
-    <span class="k">Media</span>
-  </a>
+    <a class="card" href="koogle.html">
+      <h2>Koogle</h2>
+      <p>A search page with a suspiciously familiar face.</p>
+      <span class="k">Fun</span>
+    </a>
 
-  <a class="card" href="emroyaliser.html">
-    <h2>Emroyaliser</h2>
-    <p>Render email text as an image, add a signature, paste it into Gmail.</p>
-    <span class="k">Utility</span>
-  </a>
+    <a class="card" href="instagram-timeline/">
+      <h2>Instagram Timeline Video</h2>
+      <p>Turn a timeline of moments into a scrolling video story.</p>
+      <span class="k">Media</span>
+    </a>
 
-  <a class="card" href="module_maker/download.html">
-    <h2>module-maker</h2>
-    <p>Download page for the module-maker tool.</p>
-    <span class="k">Download</span>
-  </a>
+    <a class="card" href="emroyaliser.html">
+      <h2>Emroyaliser</h2>
+      <p>Render email text as an image, add a signature, paste it into Gmail.</p>
+      <span class="k">Utility</span>
+    </a>
 
-  <a class="card" href="index/">
-    <h2>The original page</h2>
-    <p>Where this site began. Enter at your own risk.</p>
-    <span class="k">Legacy</span>
-  </a>
+    <a class="card" href="module_maker/download.html">
+      <h2>module-maker</h2>
+      <p>Download page for the module-maker tool.</p>
+      <span class="k">Download</span>
+    </a>
+
+    <a class="card" href="index/">
+      <h2>The original page</h2>
+      <p>Where this site began. Enter at your own risk.</p>
+      <span class="k">Legacy</span>
+    </a>
+
+  </div>
 </main>
 
 <footer>
   Built by <a href="https://github.com/kkasra10">kkasra10</a> · source in the
   <a href="https://github.com/kkasra10/kkasra10.github.io">site repository</a>
 </footer>
+
+</div>
 </body>
 </html>
