@@ -104,7 +104,12 @@
       var(--panel);
     border:1px solid var(--line);border-radius:10px;padding:var(--s-4);
     display:flex;justify-content:center;overflow:auto}
-  canvas{display:block;max-width:100%;height:auto;box-shadow:0 2px 14px rgba(0,0,0,.13);border-radius:2px}
+  #out{display:block;max-width:100%;height:auto;box-shadow:0 2px 14px rgba(0,0,0,.13);
+       border-radius:2px;cursor:grab}
+  #out:active{cursor:grabbing}
+  .hint ol{margin:var(--s-2) 0 0;padding-left:1.3em}
+  .hint li{margin-bottom:var(--s-1)}
+  .hint p{margin:var(--s-2) 0 0}
   .meta{display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;
         margin-top:var(--s-3);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
   @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
@@ -225,18 +230,30 @@ Kasra</textarea>
 
       <div class="actions">
         <button type="button" class="primary" id="copy">Copy image for Gmail</button>
-        <button type="button" id="copyhtml">Copy as rich HTML</button>
         <button type="button" id="download">Download PNG</button>
         <p id="status" role="status" aria-live="polite"></p>
       </div>
     </form>
 
     <div class="panel preview">
-      <div class="stage"><canvas id="cv" width="640" height="400" aria-label="Rendered email preview"></canvas></div>
+      <div class="stage">
+        <canvas id="cv" width="640" height="400" hidden></canvas>
+        <img id="out" alt="Rendered email preview" draggable="true">
+      </div>
       <p class="meta"><span id="dims"></span><span id="resolved"></span></p>
-      <p class="hint">In Gmail, open Compose, click into the message body and press Ctrl/Cmd&nbsp;+&nbsp;V.
-        If the plain image copy doesn't stick, use the rich-HTML button, or download the PNG and
-        drag it into the compose window.</p>
+      <div class="hint">
+        <p><strong>Three ways into Gmail</strong>, in order of reliability:</p>
+        <ol>
+          <li><strong>Drag</strong> the preview above straight into the Gmail compose window.</li>
+          <li><strong>Copy image for Gmail</strong>, then Ctrl/Cmd&nbsp;+&nbsp;V in the message body.
+              (Right-clicking the preview and choosing <em>Copy image</em> does the same thing, and
+              works in browsers that block the button.)</li>
+          <li><strong>Download PNG</strong>, then use Gmail's <em>Insert photo</em> button, or drag
+              the file in from your downloads.</li>
+        </ol>
+        <p>Gmail discards images embedded in pasted HTML, so the picture has to arrive as a real
+           image — which is what all three of these do.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -470,6 +487,8 @@ function draw(){
 
   if(!sigTop) drawSig(pad + textH + gap);
 
+  publish();
+
   $('dims').textContent = W + ' × ' + H + ' px · exported ' + cv.width + ' × ' + cv.height;
   $('resolved').textContent = (f.ok ? f.name : f.generic + ' (fallback)') +
       ' · ' + lines.length + (lines.length === 1 ? ' line' : ' lines');
@@ -477,45 +496,35 @@ function draw(){
 
 function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
 function say(msg, ok){ var s = $('status'); s.textContent = msg; s.className = ok ? 'ok' : ''; }
-function toBlob(){ return new Promise(function(res){ cv.toBlob(res, 'image/png'); }); }
+
+/* The visible preview is an <img>, not the canvas: an image element can be
+   dragged straight into a Gmail compose window and right-click → "Copy image"
+   puts a real bitmap on the clipboard. Both work even where the async
+   clipboard API is blocked. Encoding is debounced so a large canvas doesn't
+   stall typing. */
+var publishTimer = null;
+function publish(){
+  clearTimeout(publishTimer);
+  publishTimer = setTimeout(function(){
+    var out = $('out');
+    out.src = cv.toDataURL('image/png');
+    out.width = cv.width / parseInt($('scale').value, 10);
+  }, 80);
+}
 
 $('copy').addEventListener('click', function(){
   (async function(){
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('clipboard API unavailable');
-      await navigator.clipboard.write([ new ClipboardItem({ 'image/png': await toBlob() }) ]);
+      /* Hand ClipboardItem the *promise*. Awaiting the blob first spends the
+         user activation, which Safari rejects with NotAllowedError. */
+      await navigator.clipboard.write([ new ClipboardItem({
+        'image/png': new Promise(function(res){ cv.toBlob(res, 'image/png'); })
+      }) ]);
       say('Copied. Paste into the Gmail compose window with Ctrl/Cmd+V.', true);
     }catch(e){
-      say('Copy failed (' + e.message + '). Try “Copy as rich HTML”, or download the PNG.');
-    }
-  })();
-});
-
-$('copyhtml').addEventListener('click', function(){
-  (async function(){
-    var url  = cv.toDataURL('image/png');
-    var html = '<img src="' + url + '" width="' + (cv.width / parseInt($('scale').value,10)) +
-               '" style="max-width:100%;height:auto" alt="Email">';
-    try{
-      if(navigator.clipboard && window.ClipboardItem){
-        await navigator.clipboard.write([ new ClipboardItem({
-          'text/html' : new Blob([html], {type:'text/html'}),
-          'text/plain': new Blob([$('text').value], {type:'text/plain'})
-        }) ]);
-      } else {
-        var holder = document.createElement('div');
-        holder.contentEditable = 'true';
-        holder.style.cssText = 'position:fixed;left:-9999px;top:0';
-        holder.innerHTML = html;
-        document.body.appendChild(holder);
-        var range = document.createRange(); range.selectNodeContents(holder);
-        var s = getSelection(); s.removeAllRanges(); s.addRange(range);
-        document.execCommand('copy');
-        s.removeAllRanges(); holder.remove();
-      }
-      say('Copied as rich HTML. Gmail will upload the image when you paste.', true);
-    }catch(e){
-      say('Rich copy failed (' + e.message + '). Download the PNG and drag it in.');
+      say('Your browser blocked the copy (' + e.message + '). Drag the preview into Gmail ' +
+          'instead, or right-click it and choose “Copy image”.');
     }
   })();
 });
@@ -525,7 +534,7 @@ $('download').addEventListener('click', function(){
   a.download = 'emroyaliser.png';
   a.href = cv.toDataURL('image/png');
   a.click();
-  say('Downloaded emroyaliser.png — drag it into the Gmail compose window.', true);
+  say('Downloaded emroyaliser.png — drag it into Gmail, or use Insert photo.', true);
 });
 
 /* Start on an installed font so the first render is honest. */
