@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email → Image (with signature)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --line:#dfe3e8; --ink:#1b1f23; --muted:#5c6773;
+    --accent:#2563eb; --accent-ink:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink)}
+  header{padding:18px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{margin:0;font-size:18px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .wrap{display:flex;gap:18px;padding:18px;align-items:flex-start;flex-wrap:wrap}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .controls{flex:0 0 330px;max-width:100%}
+  .preview{flex:1 1 420px;min-width:320px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 4px;
+        text-transform:uppercase;letter-spacing:.04em}
+  input,select,textarea,button{font:inherit;width:100%;padding:7px 9px;border:1px solid var(--line);
+        border-radius:7px;background:#fff;color:inherit}
+  textarea{min-height:180px;resize:vertical;font-family:inherit}
+  input[type=color]{padding:2px;height:34px}
+  input[type=range]{padding:0;border:none;background:none}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1;min-width:0}
+  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);
+        font-weight:600;cursor:pointer}
+  button.ghost{background:#fff;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .actions{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  #status{margin-top:8px;font-size:12px;color:var(--muted);min-height:18px}
+  canvas{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;
+        display:block}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px}
+  .filerow{display:flex;gap:8px;align-items:center}
+  .filerow button{width:auto;padding:6px 10px}
+  fieldset{border:1px solid var(--line);border-radius:8px;padding:0 12px 12px;margin:16px 0 0}
+  legend{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Email → Image</h1>
+  <p>Turn plain email text into an image, add a signature image on top or at the bottom, then paste it straight into Gmail.</p>
+</header>
+
+<div class="wrap">
+  <div class="panel controls">
+    <label for="text">Email text</label>
+    <textarea id="text">Hi Sarah,
+
+Thanks for the quick turnaround on the draft — it looks great. I left a couple of notes in the margin; nothing blocking.
+
+Could we lock the final version by Friday?
+
+Best,
+Kasra</textarea>
+
+    <fieldset>
+      <legend>Text style</legend>
+      <label for="font">Font</label>
+      <select id="font">
+        <option value="Arial, Helvetica, sans-serif">Arial</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+      </select>
+      <div class="row">
+        <div>
+          <label for="size">Size <span id="sizeOut">18</span>px</label>
+          <input type="range" id="size" min="10" max="48" value="18">
+        </div>
+        <div>
+          <label for="lh">Line height <span id="lhOut">1.5</span></label>
+          <input type="range" id="lh" min="10" max="25" value="15">
+        </div>
+      </div>
+      <div class="row">
+        <div><label for="color">Text color</label><input type="color" id="color" value="#1b1f23"></div>
+        <div><label for="align">Align</label>
+          <select id="align"><option>left</option><option>center</option><option>right</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Canvas</legend>
+      <div class="row">
+        <div><label for="width">Width (px)</label><input type="number" id="width" min="200" max="2000" value="640"></div>
+        <div><label for="pad">Padding</label><input type="number" id="pad" min="0" max="200" value="32"></div>
+      </div>
+      <label for="bg">Background color</label>
+      <input type="color" id="bg" value="#ffffff">
+      <label for="bgimg">Background image (optional)</label>
+      <div class="filerow">
+        <input type="file" id="bgimg" accept="image/*">
+        <button class="ghost" id="bgclear" type="button">Clear</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label for="bgfit">Fit</label>
+          <select id="bgfit"><option value="cover">cover</option><option value="contain">contain</option><option value="stretch">stretch</option></select>
+        </div>
+        <div><label for="bgop">Opacity <span id="bgopOut">100</span>%</label>
+          <input type="range" id="bgop" min="0" max="100" value="100"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Signature image</legend>
+      <div class="filerow">
+        <input type="file" id="sig" accept="image/*">
+        <button class="ghost" id="sigclear" type="button">Clear</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label for="sigpos">Position</label>
+          <select id="sigpos"><option value="bottom">bottom</option><option value="top">top</option></select>
+        </div>
+        <div><label for="sigalign">Align</label>
+          <select id="sigalign"><option>left</option><option>center</option><option>right</option></select>
+        </div>
+      </div>
+      <label for="sigw">Width <span id="sigwOut">200</span>px</label>
+      <input type="range" id="sigw" min="40" max="800" value="200">
+      <label for="siggap">Gap <span id="siggapOut">16</span>px</label>
+      <input type="range" id="siggap" min="0" max="120" value="16">
+    </fieldset>
+
+    <div class="actions">
+      <button class="primary" id="copy" type="button">Copy image for Gmail</button>
+      <button class="ghost" id="copyhtml" type="button">Copy as rich HTML (fallback)</button>
+      <button class="ghost" id="download" type="button">Download PNG</button>
+    </div>
+    <div id="status"></div>
+    <p class="hint">In Gmail: click Compose, put the cursor in the message body and press Ctrl/Cmd+V. If the plain copy doesn't stick, use the rich-HTML fallback, or download the PNG and drag it into the compose window.</p>
+  </div>
+
+  <div class="panel preview">
+    <canvas id="cv" width="640" height="400"></canvas>
+    <p class="hint" id="dims"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const SCALE = 2;                       // render at 2x for crisp pasting
+  let bgImage = null, sigImage = null;
+
+  const ids = ['text','font','size','lh','color','align','width','pad','bg','bgfit','bgop',
+               'sigpos','sigalign','sigw','siggap'];
+  ids.forEach(id => $(id).addEventListener('input', draw));
+
+  function readOut(){
+    $('sizeOut').textContent = $('size').value;
+    $('lhOut').textContent = ($('lh').value/10).toFixed(1);
+    $('bgopOut').textContent = $('bgop').value;
+    $('sigwOut').textContent = $('sigw').value;
+    $('siggapOut').textContent = $('siggap').value;
+  }
+
+  function loadFile(input, cb){
+    const f = input.files && input.files[0];
+    if(!f) { cb(null); return; }
+    const r = new FileReader();
+    r.onload = () => { const im = new Image(); im.onload = () => cb(im); im.src = r.result; };
+    r.readAsDataURL(f);
+  }
+  $('bgimg').addEventListener('change', e => loadFile(e.target, im => { bgImage = im; draw(); }));
+  $('sig').addEventListener('change',  e => loadFile(e.target, im => { sigImage = im; draw(); }));
+  $('bgclear').addEventListener('click', () => { bgImage = null; $('bgimg').value=''; draw(); });
+  $('sigclear').addEventListener('click', () => { sigImage = null; $('sig').value=''; draw(); });
+
+  // Wrap text into lines that fit `maxW`, honouring explicit newlines.
+  function layout(text, maxW){
+    const lines = [];
+    text.split('\n').forEach(para => {
+      if(para.trim() === ''){ lines.push(''); return; }
+      let line = '';
+      para.split(/(\s+)/).forEach(tok => {
+        const test = line + tok;
+        if(ctx.measureText(test).width > maxW && line.trim() !== ''){
+          lines.push(line.replace(/\s+$/,''));
+          line = tok.replace(/^\s+/,'');
+        } else {
+          line = test;
+        }
+      });
+      lines.push(line.replace(/\s+$/,''));
+    });
+    return lines;
+  }
+
+  function draw(){
+    readOut();
+    const W    = Math.max(200, parseInt($('width').value)||640);
+    const pad  = parseInt($('pad').value)||0;
+    const size = parseInt($('size').value);
+    const lh   = size * (parseInt($('lh').value)/10);
+    const align= $('align').value;
+    const innerW = Math.max(10, W - pad*2);
+
+    // measure text with the final font
+    const font = size + 'px ' + $('font').value;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.font = font;
+    const lines = layout($('text').value, innerW);
+    const textH = lines.length * lh;
+
+    // signature block size
+    let sigW = 0, sigH = 0, gap = 0;
+    if(sigImage){
+      sigW = Math.min(parseInt($('sigw').value), innerW);
+      sigH = sigW * (sigImage.height / sigImage.width);
+      gap  = parseInt($('siggap').value);
+    }
+
+    const H = Math.round(pad*2 + textH + (sigImage ? sigH + gap : 0));
+
+    cv.width  = W * SCALE;
+    cv.height = H * SCALE;
+    cv.style.width = W + 'px';
+    ctx.setTransform(SCALE,0,0,SCALE,0,0);
+
+    // background
+    ctx.fillStyle = $('bg').value;
+    ctx.fillRect(0,0,W,H);
+    if(bgImage){
+      ctx.save();
+      ctx.globalAlpha = parseInt($('bgop').value)/100;
+      const fit = $('bgfit').value;
+      if(fit === 'stretch'){
+        ctx.drawImage(bgImage, 0, 0, W, H);
+      } else {
+        const r = bgImage.width / bgImage.height;
+        let dw, dh;
+        if((fit === 'cover') === (W/H > r)){ dw = W; dh = W/r; } else { dh = H; dw = H*r; }
+        ctx.drawImage(bgImage, (W-dw)/2, (H-dh)/2, dw, dh);
+      }
+      ctx.restore();
+    }
+
+    const sigTop = $('sigpos').value === 'top';
+    let y = pad;
+
+    function drawSig(){
+      if(!sigImage) return;
+      const a = $('sigalign').value;
+      const x = a === 'left' ? pad : a === 'right' ? W - pad - sigW : (W - sigW)/2;
+      ctx.drawImage(sigImage, x, y, sigW, sigH);
+      y += sigH + gap;
+    }
+
+    if(sigTop) drawSig();
+
+    ctx.font = font;
+    ctx.fillStyle = $('color').value;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = align;
+    const tx = align === 'left' ? pad : align === 'right' ? W - pad : W/2;
+    const off = (lh - size) / 2;             // vertical centring inside the line box
+    lines.forEach(l => { ctx.fillText(l, tx, y + off); y += lh; });
+
+    if(!sigTop){ y += gap; drawSig(); }
+
+    $('dims').textContent = W + ' × ' + H + ' px (exported at ' + (W*SCALE) + ' × ' + (H*SCALE) + ')';
+  }
+
+  function say(msg, ok){ const s = $('status'); s.textContent = msg; s.style.color = ok ? '#137333' : '#5c6773'; }
+
+  function toBlob(){ return new Promise(res => cv.toBlob(res, 'image/png')); }
+
+  $('copy').addEventListener('click', async () => {
+    try{
+      if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no clipboard API');
+      const blob = await toBlob();
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      say('Copied. Paste into the Gmail compose window with Ctrl/Cmd+V.', true);
+    }catch(e){
+      say('Copy failed (' + e.message + '). Try the rich-HTML fallback or download the PNG.');
+    }
+  });
+
+  $('copyhtml').addEventListener('click', async () => {
+    try{
+      const url = cv.toDataURL('image/png');
+      const html = '<img src="' + url + '" style="max-width:100%" alt="email">';
+      if(navigator.clipboard && window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], {type:'text/html'}),
+          'text/plain': new Blob([$('text').value], {type:'text/plain'})
+        })]);
+      } else {
+        // execCommand fallback: copy a live selection of the rendered image
+        const holder = document.createElement('div');
+        holder.contentEditable = 'true';
+        holder.style.cssText = 'position:fixed;left:-9999px;top:0';
+        holder.innerHTML = html;
+        document.body.appendChild(holder);
+        const r = document.createRange(); r.selectNodeContents(holder);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        document.execCommand('copy');
+        sel.removeAllRanges(); holder.remove();
+      }
+      say('Copied as rich HTML. Paste into Gmail; it will upload the image itself.', true);
+    }catch(e){
+      say('Rich copy failed (' + e.message + '). Download the PNG and drag it into Gmail.');
+    }
+  });
+
+  $('download').addEventListener('click', async () => {
+    const a = document.createElement('a');
+    a.download = 'email.png';
+    a.href = cv.toDataURL('image/png');
+    a.click();
+    say('Downloaded email.png — drag it into the Gmail compose window.', true);
+  });
+
+  draw();
+})();
+</script>
+</body>
+</html>
