@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Email → Image (with signature)</title>
+<title>Emroyaliser</title>
 <style>
   :root{
     --bg:#f6f7f9; --panel:#ffffff; --line:#dfe3e8; --ink:#1b1f23; --muted:#5c6773;
@@ -45,7 +45,7 @@
 </head>
 <body>
 <header>
-  <h1>Email → Image</h1>
+  <h1>Emroyaliser</h1>
   <p>Turn plain email text into an image, add a signature image on top or at the bottom, then paste it straight into Gmail.</p>
 </header>
 
@@ -317,10 +317,10 @@ Kasra</textarea>
 
   $('download').addEventListener('click', async () => {
     const a = document.createElement('a');
-    a.download = 'email.png';
+    a.download = 'emroyaliser.png';
     a.href = cv.toDataURL('image/png');
     a.click();
-    say('Downloaded email.png — drag it into the Gmail compose window.', true);
+    say('Downloaded emroyaliser.png — drag it into the Gmail compose window.', true);
   });
 
   draw();
