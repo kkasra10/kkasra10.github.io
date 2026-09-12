@@ -93,6 +93,10 @@
   .actions{padding:var(--s-4);border-top:1px solid var(--line);display:grid;gap:var(--s-2)}
 
   #fontnote{font-size:.75rem;margin-top:var(--s-1);color:var(--muted);min-height:1.2em}
+  .sub{font-size:.72rem;color:var(--muted);margin:var(--s-1) 0 0}
+  .sub a{color:var(--accent)}
+  .addfont{margin-top:var(--s-4)}
+  optgroup{font-style:normal;font-weight:700}
   #fontnote.warn{color:var(--warn)}
   #status{font-size:.8rem;color:var(--muted);min-height:1.3em}
   #status.ok{color:var(--ok)}
@@ -146,6 +150,21 @@ Kasra</textarea>
           <label for="font">Font</label>
           <select id="font"></select>
           <p id="fontnote"></p>
+        </div>
+        <div class="field addfont">
+          <label for="gfont">Add a Google Font</label>
+          <div class="withbtn">
+            <input type="text" id="gfont" placeholder="e.g. Playfair Display"
+                   autocomplete="off" spellcheck="false">
+            <button type="button" id="gadd">Add</button>
+          </div>
+          <p class="sub">Type the family name exactly as it appears on
+            <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a>.</p>
+        </div>
+        <div class="field">
+          <label for="fontfile">Or upload a font file</label>
+          <input type="file" id="fontfile" accept=".ttf,.otf,.woff,.woff2,font/*">
+          <p class="sub">.ttf, .otf, .woff or .woff2 — stays on your machine.</p>
         </div>
         <div class="field">
           <span class="lbl">Style</span>
@@ -270,22 +289,53 @@ var bgImage = null, sigImage = null;
    why picking a different font can look like it did nothing. Detect that and
    say so, instead of pretending the choice took effect. */
 var FONTS = [
-  { name:'Arial',           stack:'Arial, Helvetica, sans-serif',            generic:'sans-serif' },
-  { name:'Helvetica',       stack:'Helvetica, Arial, sans-serif',            generic:'sans-serif' },
-  { name:'Verdana',         stack:'Verdana, Geneva, sans-serif',             generic:'sans-serif' },
-  { name:'Tahoma',          stack:'Tahoma, Geneva, sans-serif',              generic:'sans-serif' },
-  { name:'Trebuchet MS',    stack:'"Trebuchet MS", sans-serif',              generic:'sans-serif' },
-  { name:'Segoe UI',        stack:'"Segoe UI", sans-serif',                  generic:'sans-serif' },
-  { name:'Georgia',         stack:'Georgia, serif',                          generic:'serif' },
-  { name:'Times New Roman', stack:'"Times New Roman", Times, serif',         generic:'serif' },
-  { name:'Palatino',        stack:'"Palatino Linotype", Palatino, serif',    generic:'serif' },
-  { name:'Garamond',        stack:'Garamond, Baskerville, serif',            generic:'serif' },
-  { name:'Courier New',     stack:'"Courier New", Courier, monospace',       generic:'monospace' },
-  { name:'Consolas',        stack:'Consolas, Menlo, monospace',              generic:'monospace' },
-  { name:'Comic Sans MS',   stack:'"Comic Sans MS", cursive',                generic:'cursive' },
-  { name:'Brush Script MT', stack:'"Brush Script MT", cursive',              generic:'cursive' },
-  { name:'Impact',          stack:'Impact, Charcoal, sans-serif',            generic:'sans-serif' },
-  { name:'System default',  stack:'system-ui, sans-serif',                   generic:'sans-serif', always:true }
+  { name:'Arial',            stack:'Arial, Helvetica, sans-serif',             generic:'sans-serif' },
+  { name:'Helvetica',        stack:'Helvetica, Arial, sans-serif',             generic:'sans-serif' },
+  { name:'Helvetica Neue',   stack:'"Helvetica Neue", Helvetica, sans-serif',  generic:'sans-serif' },
+  { name:'Verdana',          stack:'Verdana, Geneva, sans-serif',              generic:'sans-serif' },
+  { name:'Tahoma',           stack:'Tahoma, Geneva, sans-serif',               generic:'sans-serif' },
+  { name:'Trebuchet MS',     stack:'"Trebuchet MS", sans-serif',               generic:'sans-serif' },
+  { name:'Segoe UI',         stack:'"Segoe UI", sans-serif',                   generic:'sans-serif' },
+  { name:'Calibri',          stack:'Calibri, Candara, sans-serif',             generic:'sans-serif' },
+  { name:'Candara',          stack:'Candara, Calibri, sans-serif',             generic:'sans-serif' },
+  { name:'Corbel',           stack:'Corbel, sans-serif',                       generic:'sans-serif' },
+  { name:'Century Gothic',   stack:'"Century Gothic", sans-serif',             generic:'sans-serif' },
+  { name:'Gill Sans',        stack:'"Gill Sans", "Gill Sans MT", sans-serif',  generic:'sans-serif' },
+  { name:'Futura',           stack:'Futura, "Trebuchet MS", sans-serif',       generic:'sans-serif' },
+  { name:'Optima',           stack:'Optima, Candara, sans-serif',              generic:'sans-serif' },
+  { name:'Franklin Gothic',  stack:'"Franklin Gothic Medium", sans-serif',     generic:'sans-serif' },
+  { name:'Geneva',           stack:'Geneva, Verdana, sans-serif',              generic:'sans-serif' },
+  { name:'Arial Black',      stack:'"Arial Black", Gadget, sans-serif',        generic:'sans-serif' },
+  { name:'Impact',           stack:'Impact, Charcoal, sans-serif',             generic:'sans-serif' },
+
+  { name:'Georgia',          stack:'Georgia, serif',                           generic:'serif' },
+  { name:'Times New Roman',  stack:'"Times New Roman", Times, serif',          generic:'serif' },
+  { name:'Palatino',         stack:'"Palatino Linotype", Palatino, serif',     generic:'serif' },
+  { name:'Garamond',         stack:'Garamond, Baskerville, serif',             generic:'serif' },
+  { name:'Baskerville',      stack:'Baskerville, Georgia, serif',              generic:'serif' },
+  { name:'Cambria',          stack:'Cambria, Georgia, serif',                  generic:'serif' },
+  { name:'Constantia',       stack:'Constantia, Georgia, serif',               generic:'serif' },
+  { name:'Bookman Old Style',stack:'"Bookman Old Style", serif',               generic:'serif' },
+  { name:'Perpetua',         stack:'Perpetua, Georgia, serif',                 generic:'serif' },
+  { name:'Rockwell',         stack:'Rockwell, "Courier New", serif',           generic:'serif' },
+  { name:'Didot',            stack:'Didot, "Bodoni MT", serif',                generic:'serif' },
+  { name:'American Typewriter', stack:'"American Typewriter", serif',          generic:'serif' },
+
+  { name:'Courier New',      stack:'"Courier New", Courier, monospace',        generic:'monospace' },
+  { name:'Consolas',         stack:'Consolas, Menlo, monospace',               generic:'monospace' },
+  { name:'Menlo',            stack:'Menlo, Consolas, monospace',               generic:'monospace' },
+  { name:'Monaco',           stack:'Monaco, Menlo, monospace',                 generic:'monospace' },
+  { name:'Lucida Console',   stack:'"Lucida Console", Monaco, monospace',      generic:'monospace' },
+
+  { name:'Comic Sans MS',    stack:'"Comic Sans MS", cursive',                 generic:'cursive' },
+  { name:'Brush Script MT',  stack:'"Brush Script MT", cursive',               generic:'cursive' },
+  { name:'Bradley Hand',     stack:'"Bradley Hand", cursive',                  generic:'cursive' },
+  { name:'Segoe Script',     stack:'"Segoe Script", cursive',                  generic:'cursive' },
+  { name:'Snell Roundhand',  stack:'"Snell Roundhand", cursive',               generic:'cursive' },
+  { name:'Copperplate',      stack:'Copperplate, "Copperplate Gothic Light", fantasy', generic:'fantasy' },
+  { name:'Papyrus',          stack:'Papyrus, fantasy',                         generic:'fantasy' },
+
+  { name:'System default',   stack:'system-ui, sans-serif',  generic:'sans-serif', always:true }
 ];
 
 var probe = document.createElement('canvas').getContext('2d');
@@ -299,15 +349,148 @@ function installed(name){
 }
 
 var sel = $('font');
-FONTS.forEach(function(f, i){
-  f.ok = f.always || installed(f.name);
-  var o = document.createElement('option');
-  o.value = String(i);
-  o.textContent = f.name + (f.ok ? '' : ' — not installed');
-  o.style.fontFamily = f.stack;          // show each option in its own face
-  if(!f.ok) o.style.opacity = '.55';
-  sel.appendChild(o);
+
+/* Added fonts (Google or uploaded) are grouped separately so they are easy to
+   find in a long list. */
+function renderFontOptions(){
+  var keep = sel.value;
+  sel.innerHTML = '';
+  var groups = [
+    { label:'Added by you', test:function(f){ return f.source; } },
+    { label:'On this device', test:function(f){ return !f.source && f.ok; } },
+    { label:'Not installed here', test:function(f){ return !f.source && !f.ok; } }
+  ];
+  groups.forEach(function(g){
+    var members = FONTS.map(function(f,i){ return {f:f,i:i}; }).filter(function(e){ return g.test(e.f); });
+    if(!members.length) return;
+    var og = document.createElement('optgroup');
+    og.label = g.label;
+    members.forEach(function(e){
+      var o = document.createElement('option');
+      o.value = String(e.i);
+      o.textContent = e.f.name + (e.f.source === 'google' ? ' (Google)'
+                                : e.f.source === 'file'   ? ' (uploaded)'
+                                : e.f.ok ? '' : ' — not installed');
+      o.style.fontFamily = e.f.stack;
+      if(!e.f.ok) o.style.opacity = '.55';
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  if(keep && sel.querySelector('option[value="' + keep + '"]')) sel.value = keep;
+}
+
+FONTS.forEach(function(f){ f.ok = f.always || installed(f.name); });
+renderFontOptions();
+
+/* ---- adding fonts ------------------------------------------------------ */
+function addFont(entry){
+  var existing = -1;
+  FONTS.forEach(function(f,i){ if(f.name.toLowerCase() === entry.name.toLowerCase()) existing = i; });
+  var idx = existing >= 0 ? existing : FONTS.length;
+  if(existing >= 0) FONTS[existing] = entry; else FONTS.push(entry);
+  renderFontOptions();
+  sel.value = String(idx);
+  draw();
+  return idx;
+}
+
+/* Google Fonts: inject the stylesheet, then confirm the family actually
+   arrived. A misspelled family returns no @font-face, so fonts.check stays
+   false and we say so rather than silently rendering the fallback. */
+function loadGoogleFont(family, quiet){
+  family = family.trim().replace(/\s+/g, ' ');
+  if(!family) return Promise.resolve(false);
+  var href = 'https://fonts.googleapis.com/css2?family=' +
+             encodeURIComponent(family).replace(/%20/g,'+') +
+             ':ital,wght@0,400;0,700;1,400;1,700&display=swap';
+  /* The stylesheet has to arrive and be parsed before document.fonts.load has
+     any @font-face rule to act on — asking too early resolves against nothing
+     and looks exactly like a missing family. */
+  var sheetReady = new Promise(function(resolve, reject){
+    var link = document.querySelector('link[data-gf="' + family + '"]');
+    if(link){ resolve(); return; }
+    link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = href; link.setAttribute('data-gf', family);
+    link.onload = function(){ resolve(); };
+    link.onerror = function(){ reject(new Error('unreachable')); };
+    /* A blocked or stalled request fires neither event, which would leave the
+       page saying "Loading" forever. Give up after ten seconds. */
+    setTimeout(function(){ reject(new Error('timeout')); }, 10000);
+    document.head.appendChild(link);
+  });
+
+  var spec = '16px "' + family + '"';
+  return sheetReady.then(function(){
+    return Promise.all([
+      document.fonts.load(spec), document.fonts.load('700 ' + spec), document.fonts.load('italic ' + spec)
+    ]);
+  }).then(function(){
+    /* fonts.check() reports true for a family that has no faces at all, so it
+       cannot tell a real webfont from a typo. Measure instead: if the family
+       renders identically to every generic fallback, nothing arrived. */
+    if(!installed(family)){
+      if(!quiet) say('Couldn\u2019t find “' + family + '” on Google Fonts. Check the spelling against fonts.google.com.');
+      return false;
+    }
+    addFont({ name:family, stack:'"' + family + '", sans-serif', generic:'sans-serif',
+              ok:true, source:'google' });
+    rememberGoogleFont(family);
+    if(!quiet) say('Added “' + family + '”.', true);
+    return true;
+  })['catch'](function(err){
+    if(!quiet){
+      say(err.message === 'timeout'
+        ? 'Timed out fetching “' + family + '” from Google Fonts.'
+        : 'Couldn\u2019t load “' + family + '”. Check the spelling on fonts.google.com, ' +
+          'or whether your network allows Google Fonts.');
+    }
+    return false;
+  });
+}
+
+/* Remember Google families across reloads. Uploaded files can't be remembered
+   — the browser has no lasting handle on the file. */
+function storedGoogleFonts(){
+  try{ return JSON.parse(localStorage.getItem('emroyaliser.gfonts') || '[]'); }
+  catch(e){ return []; }
+}
+function rememberGoogleFont(family){
+  try{
+    var list = storedGoogleFonts();
+    if(list.indexOf(family) === -1){ list.push(family); }
+    localStorage.setItem('emroyaliser.gfonts', JSON.stringify(list.slice(-20)));
+  }catch(e){ /* private window or blocked storage: not worth surfacing */ }
+}
+
+$('gadd').addEventListener('click', function(){
+  var v = $('gfont').value;
+  if(!v.trim()){ say('Type a family name first, e.g. Playfair Display.'); return; }
+  say('Loading “' + v.trim() + '”\u2026');
+  loadGoogleFont(v).then(function(ok){ if(ok) $('gfont').value = ''; });
 });
+$('gfont').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); $('gadd').click(); }
+});
+
+$('fontfile').addEventListener('change', function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  var name = f.name.replace(/\.[^.]+$/, '');
+  f.arrayBuffer().then(function(buf){
+    var face = new FontFace(name, buf);
+    return face.load();
+  }).then(function(face){
+    document.fonts.add(face);
+    addFont({ name:name, stack:'"' + name + '", sans-serif', generic:'sans-serif',
+              ok:true, source:'file' });
+    say('Loaded “' + name + '” from your machine.', true);
+  })['catch'](function(err){
+    say('That font file could not be read (' + err.message + ').');
+  });
+  e.target.value = '';
+});
+
 function currentFont(){ return FONTS[parseInt(sel.value,10) || 0]; }
 
 /* ---------- wiring ------------------------------------------------------ */
@@ -541,6 +724,7 @@ $('download').addEventListener('click', function(){
 (function(){
   for(var i=0;i<FONTS.length;i++){ if(FONTS[i].ok){ sel.value = String(i); break; } }
   draw();
+  storedGoogleFonts().forEach(function(family){ loadGoogleFont(family, true); });
 })();
 })();
 </script>
