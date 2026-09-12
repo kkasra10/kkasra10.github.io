@@ -94,6 +94,13 @@
 
   #fontnote{font-size:.75rem;margin-top:var(--s-1);color:var(--muted);min-height:1.2em}
   .sub{font-size:.72rem;color:var(--muted);margin:var(--s-1) 0 0}
+  .check{display:flex;align-items:center;gap:var(--s-2);cursor:pointer;
+         font-size:.9rem;font-weight:500;color:var(--ink);text-transform:none;letter-spacing:0}
+  .check input{width:auto;flex:0 0 auto;accent-color:var(--accent);
+               width:17px;height:17px;cursor:pointer}
+  #savemsg{font-size:.78rem;margin:var(--s-3) 0 0;min-height:1.2em;color:var(--muted)}
+  #savemsg.ok{color:var(--ok);font-weight:600}
+  #savemsg.warn{color:var(--warn);font-weight:600}
   #fontmsg{font-size:.78rem;margin:var(--s-3) 0 0;min-height:1.2em;color:var(--muted)}
   #fontmsg.ok{color:var(--ok);font-weight:600}
   #fontmsg.warn{color:var(--warn);font-weight:600}
@@ -251,6 +258,22 @@ Kasra</textarea>
         </div>
       </fieldset>
 
+      <fieldset>
+        <legend>Saving</legend>
+        <div class="field">
+          <label class="check">
+            <input type="checkbox" id="autosave">
+            <span>Autosave my work in this browser</span>
+          </label>
+          <p class="sub">Keeps your text, styling and images so they are still here next time.
+             Stored only on this device — nothing is uploaded.</p>
+        </div>
+        <div class="field">
+          <button type="button" id="clearsaved">Clear saved work</button>
+        </div>
+        <p id="savemsg" role="status" aria-live="polite"></p>
+      </fieldset>
+
       <div class="actions">
         <button type="button" class="primary" id="copy">Copy image for Gmail</button>
         <button type="button" id="download">Download PNG</button>
@@ -402,9 +425,24 @@ function addFont(entry){
 /* Google Fonts: inject the stylesheet, then confirm the family actually
    arrived. A misspelled family returns no @font-face, so fonts.check stays
    false and we say so rather than silently rendering the fallback. */
+/* Google's API keys families by their unaccented spelling: "Caacupé One"
+   returns 400, "Caacupe One" returns the font. Try what was typed, then fall
+   back to a de-accented form so the natural spelling still works. */
+function deaccent(str){
+  return str.normalize ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : str;
+}
 function loadGoogleFont(family, quiet){
   family = family.trim().replace(/\s+/g, ' ');
   if(!family) return Promise.resolve(false);
+  var plain = deaccent(family);
+  if(plain !== family){
+    return loadOneGoogleFont(family, true).then(function(ok){
+      return ok ? true : loadOneGoogleFont(plain, quiet);
+    });
+  }
+  return loadOneGoogleFont(family, quiet);
+}
+function loadOneGoogleFont(family, quiet){
   var href = 'https://fonts.googleapis.com/css2?family=' +
              encodeURIComponent(family).replace(/%20/g,'+') +
              ':ital,wght@0,400;0,700;1,400;1,700&display=swap';
@@ -675,6 +713,7 @@ function draw(){
   if(!sigTop) drawSig(pad + textH + gap);
 
   publish();
+  saveState();
 
   $('dims').textContent = W + ' × ' + H + ' px · exported ' + cv.width + ' × ' + cv.height;
   $('resolved').textContent = (f.ok ? f.name : f.generic + ' (fallback)') +
@@ -729,11 +768,115 @@ $('download').addEventListener('click', function(){
   say('Downloaded emroyaliser.png — drag it into Gmail, or use Insert photo.', 'ok');
 });
 
+/* ---- autosave ----------------------------------------------------------
+   Everything lives in this browser: the settings, the typed text, and the
+   uploaded images as data URLs. Images can be large, so a quota failure falls
+   back to saving everything except them rather than losing the lot. */
+var SAVE_KEY = 'emroyaliser.state', PREF_KEY = 'emroyaliser.autosave';
+var FIELDS = ['text','size','lh','track','color','align','width','pad','bg','scale',
+              'bgfit','bgop','sigpos','sigalign','sigw','siggap'];
+
+function ls(op, key, val){
+  try{
+    if(op === 'get') return localStorage.getItem(key);
+    if(op === 'set') { localStorage.setItem(key, val); return true; }
+    localStorage.removeItem(key); return true;
+  }catch(e){ return op === 'get' ? null : false; }
+}
+
+function collectState(withImages){
+  var st = { font: currentFont().name, bold: $('bold').checked, italic: $('italic').checked };
+  FIELDS.forEach(function(id){ st[id] = $(id).value; });
+  if(withImages){
+    if(bgImage)  st.bgImage  = bgImage.src;
+    if(sigImage) st.sigImage = sigImage.src;
+  }
+  return st;
+}
+
+var saveTimer = null, restoring = false;
+function saveState(){
+  /* Restoring fires draw(), which would otherwise immediately overwrite the
+     "restored" message with "Saved." */
+  if(restoring || !$('autosave').checked) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    if(ls('set', SAVE_KEY, JSON.stringify(collectState(true)))){
+      ssay('Saved.', 'ok');
+    } else if(ls('set', SAVE_KEY, JSON.stringify(collectState(false)))){
+      ssay('Saved, but the images were too large to keep.', 'warn');
+    } else {
+      ssay('This browser is blocking local storage, so nothing was saved.', 'warn');
+    }
+  }, 500);
+}
+
+function applyFontByName(name){
+  for(var i=0;i<FONTS.length;i++){
+    if(FONTS[i].name === name){ sel.value = String(i); return true; }
+  }
+  return false;
+}
+
+function restoreState(){
+  var raw = ls('get', SAVE_KEY);
+  if(!raw) return false;
+  var st;
+  try{ st = JSON.parse(raw); }catch(e){ return false; }
+  restoring = true;
+  setTimeout(function(){ restoring = false; }, 800);
+
+  FIELDS.forEach(function(id){ if(st[id] !== undefined) $(id).value = st[id]; });
+  $('bold').checked   = !!st.bold;
+  $('italic').checked = !!st.italic;
+  if(st.font) applyFontByName(st.font);
+
+  var pending = 0, self = this;
+  function loaded(){ if(--pending <= 0) draw(); }
+  ['bgImage','sigImage'].forEach(function(key){
+    if(!st[key]) return;
+    pending++;
+    var im = new Image();
+    im.onload  = function(){ if(key === 'bgImage') bgImage = im; else sigImage = im; loaded(); };
+    im.onerror = loaded;
+    im.src = st[key];
+  });
+  draw();
+  return true;
+}
+
+function ssay(msg, state){ var m = $('savemsg'); m.textContent = msg; m.className = state || ''; }
+
+$('autosave').addEventListener('change', function(){
+  ls('set', PREF_KEY, this.checked ? '1' : '0');
+  if(this.checked){ saveState(); }
+  else { ls('remove', SAVE_KEY); ssay('Autosave off. Saved work cleared.'); }
+});
+
+$('clearsaved').addEventListener('click', function(){
+  ls('remove', SAVE_KEY);
+  ssay('Saved work cleared. Reload for a blank start.', 'ok');
+});
+
 /* Start on an installed font so the first render is honest. */
 (function(){
   for(var i=0;i<FONTS.length;i++){ if(FONTS[i].ok){ sel.value = String(i); break; } }
-  draw();
-  storedGoogleFonts().forEach(function(family){ loadGoogleFont(family, true); });
+
+  var wants = ls('get', PREF_KEY) === '1';
+  $('autosave').checked = wants;
+  var restored = wants ? restoreState() : false;
+  if(!restored) draw();
+  if(restored) ssay('Restored your last session.', 'ok');
+
+  /* Remembered Google families load after the restore, so re-apply the saved
+     choice once each one is registered. */
+  var saved = null;
+  try{ saved = JSON.parse(ls('get', SAVE_KEY) || 'null'); }catch(e){}
+  storedGoogleFonts().forEach(function(family){
+    loadGoogleFont(family, true).then(function(ok){
+      if(ok && restored && saved && saved.font && applyFontByName(saved.font)) draw();
+    });
+  });
 })();
 })();
 </script>
