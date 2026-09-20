@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Line Grid</title>
+<style>
+  :root { --bg:#f4f4f6; --panel:#fff; --ink:#1c1c22; --muted:#6b6b76; --accent:#4f46e5; --border:#dcdce2; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16161a; --panel:#212127; --ink:#ececf1; --muted:#9a9aa6; --accent:#818cf8; --border:#34343c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui, sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 16px; align-items:center; justify-content:center;
+         background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:10px 14px; }
+  label { display:flex; align-items:center; gap:6px; color:var(--muted); }
+  select, button, input[type=range] { font:inherit; }
+  select, button { background:var(--bg); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:6px 10px; }
+  button { cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.on { background:#dc2626; border-color:#dc2626; color:#fff; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  canvas { width:min(92vw, 720px); aspect-ratio:1; background:#fff; border:1px solid var(--border);
+           border-radius:8px; cursor:crosshair; touch-action:none; }
+  .hint { color:var(--muted); font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <label>Columns <select id="cols"></select></label>
+    <label>Rows <select id="rows"></select></label>
+    <label>Thickness <input id="thick" type="range" min="1" max="12" value="3"></label>
+    <label><input id="expGrid" type="checkbox"> Grid in export</label>
+    <button id="erase">Erase: off</button>
+    <button id="undo">Undo</button>
+    <button id="clear">Clear</button>
+    <button id="export" class="primary">Export PNG</button>
+  </div>
+  <canvas id="c"></canvas>
+  <div class="hint">Click a dot to start, click another to draw a line (it keeps chaining). Shift+click a dot to move the start without drawing; Esc or right-click lets go. Ctrl/Cmd+Z to undo. Turn on Erase, then click any line to delete it.</div>
+
+<script>
+const N = 60;
+const FACTORS = [1,2,3,4,5,6,10,12,15,20,30,60];
+const $ = id => document.getElementById(id);
+const canvas = $('c'), ctx = canvas.getContext('2d');
+const colsEl = $('cols'), rowsEl = $('rows');
+
+for (const el of [colsEl, rowsEl]) {
+  for (const f of FACTORS) el.add(new Option(f, f));
+  el.value = 10;
+}
+
+const lines = [];          // [x1, y1, x2, y2] in 0..60 units, independent of the grid density
+let start = null;          // {i, j} of the pending start point
+let hover = null;
+let erasing = false;
+let hot = -1;             // index of the line under the cursor in erase mode
+
+const cols = () => +colsEl.value;
+const rows = () => +rowsEl.value;
+const pos = (i, n) => (i + 0.5) * N / n;   // dot i of n, centred in its cell
+
+function layout(size) {
+  const pad = size * 0.04;
+  return { pad, span: size - pad * 2 };
+}
+
+function draw(c, size, { points, grid }) {
+  const { pad, span } = layout(size);
+  const X = u => pad + u / N * span;
+  c.fillStyle = '#fff';
+  c.fillRect(0, 0, size, size);
+
+  if (grid) {
+    c.strokeStyle = '#d8d8de';
+    c.lineWidth = Math.max(1, size / 720);
+    c.beginPath();
+    for (let i = 0; i < cols(); i++) { const x = X(pos(i, cols())); c.moveTo(x, X(0)); c.lineTo(x, X(N)); }
+    for (let j = 0; j < rows(); j++) { const y = X(pos(j, rows())); c.moveTo(X(0), y); c.lineTo(X(N), y); }
+    c.stroke();
+  }
+
+  c.strokeStyle = '#111';
+  c.lineCap = 'round';
+  c.lineWidth = +$('thick').value * size / 720;
+  c.beginPath();
+  lines.forEach(([x1, y1, x2, y2], k) => {
+    if (points && k === hot) return;
+    c.moveTo(X(x1), X(y1)); c.lineTo(X(x2), X(y2));
+  });
+  c.stroke();
+  if (points && hot >= 0) {
+    const [x1, y1, x2, y2] = lines[hot];
+    c.strokeStyle = '#dc2626';
+    c.beginPath(); c.moveTo(X(x1), X(y1)); c.lineTo(X(x2), X(y2)); c.stroke();
+  }
+
+  if (points) {
+    const r = Math.max(1.5, Math.min(4, span / Math.max(cols(), rows()) / 4));
+    c.fillStyle = '#9a9aa8';
+    for (let i = 0; i < cols(); i++)
+      for (let j = 0; j < rows(); j++) {
+        c.beginPath(); c.arc(X(pos(i, cols())), X(pos(j, rows())), r, 0, 7); c.fill();
+      }
+    c.fillStyle = '#4f46e5';
+    for (const p of [start, hover]) {
+      if (!p) continue;
+      c.beginPath(); c.arc(X(pos(p.i, cols())), X(pos(p.j, rows())), r * 2.2, 0, 7); c.fill();
+    }
+  }
+}
+
+function render() {
+  const dpr = window.devicePixelRatio || 1;
+  const size = canvas.clientWidth;
+  if (canvas.width !== Math.round(size * dpr)) canvas.width = canvas.height = Math.round(size * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw(ctx, size, { points: true, grid: true });
+}
+
+function pointAt(e) {
+  const rect = canvas.getBoundingClientRect();
+  const { pad, span } = layout(rect.width);
+  const fx = (e.clientX - rect.left - pad) / span, fy = (e.clientY - rect.top - pad) / span;
+  const snap = (f, n) => Math.min(n - 1, Math.max(0, Math.round(f * n - 0.5)));
+  return { i: snap(fx, cols()), j: snap(fy, rows()) };
+}
+
+const toUnits = p => [pos(p.i, cols()), pos(p.j, rows())];
+
+function lineAt(e) {
+  const rect = canvas.getBoundingClientRect();
+  const { pad, span } = layout(rect.width);
+  const px = (e.clientX - rect.left - pad) / span * N, py = (e.clientY - rect.top - pad) / span * N;
+  let best = -1, bestD = 10 / span * N;   // pick radius: 10 screen px
+  lines.forEach(([x1, y1, x2, y2], k) => {
+    const dx = x2 - x1, dy = y2 - y1;
+    const t = Math.min(1, Math.max(0, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+    const d = Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    if (d < bestD) { bestD = d; best = k; }
+  });
+  return best;
+}
+
+canvas.addEventListener('pointermove', e => {
+  if (erasing) hot = lineAt(e); else hover = pointAt(e);
+  render();
+});
+canvas.addEventListener('pointerleave', () => { hover = null; hot = -1; render(); });
+canvas.addEventListener('contextmenu', e => { e.preventDefault(); start = null; render(); });
+canvas.addEventListener('click', e => {
+  if (erasing) {
+    const k = lineAt(e);
+    if (k >= 0) lines.splice(k, 1);
+    hot = lineAt(e);
+    render();
+    return;
+  }
+  const p = pointAt(e);
+  if (!e.shiftKey && start && (start.i !== p.i || start.j !== p.j)) {
+    lines.push([...toUnits(start), ...toUnits(p)]);
+  }
+  start = p;
+  render();
+});
+
+function undo() { lines.pop(); hot = -1; render(); }
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { start = null; render(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+});
+
+colsEl.onchange = rowsEl.onchange = () => { start = null; render(); };
+$('thick').oninput = render;
+$('erase').onclick = () => {
+  erasing = !erasing;
+  start = hover = null; hot = -1;
+  $('erase').textContent = 'Erase: ' + (erasing ? 'on' : 'off');
+  $('erase').classList.toggle('on', erasing);
+  canvas.style.cursor = erasing ? 'pointer' : '';
+  render();
+};
+$('undo').onclick = undo;
+$('clear').onclick = () => { lines.length = 0; start = null; hot = -1; render(); };
+$('export').onclick = () => {
+  const out = document.createElement('canvas');
+  out.width = out.height = 2400;
+  draw(out.getContext('2d'), 2400, { points: false, grid: $('expGrid').checked });
+  out.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'line-grid.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+};
+
+window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
