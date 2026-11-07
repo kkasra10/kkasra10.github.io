@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<title>iPhone Keyboards</title>
+<style>
+  :root {
+    --bg: #e9e7e2; --text: #1d1c1a; --dim: #6f6b64;
+    --phone: #111; --screen: #fff; --kb: #d1d3d9;
+    --key: #fff; --key-text: #000; --key-alt: #abb0bc; --key-shadow: #898a8d;
+    --key-press: #abb0bc; --accent: #007aff; --pop: #fff;
+    --input: #fff; --line: #d6d3cc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101215; --text: #e8e6e1; --dim: #8b8880;
+      --phone: #2a2c30; --screen: #000; --kb: #2b2b2d;
+      --key: #6b6b6d; --key-text: #fff; --key-alt: #464648; --key-shadow: #1a1a1a;
+      --key-press: #464648; --accent: #0a84ff; --pop: #6b6b6d;
+      --input: #1c1d20; --line: #33363c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101215; --text: #e8e6e1; --dim: #8b8880;
+    --phone: #2a2c30; --screen: #000; --kb: #2b2b2d;
+    --key: #6b6b6d; --key-text: #fff; --key-alt: #464648; --key-shadow: #1a1a1a;
+    --key-press: #464648; --accent: #0a84ff; --pop: #6b6b6d;
+    --input: #1c1d20; --line: #33363c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 40px;
+  }
+  header { width: 100%; max-width: 420px; margin-bottom: 16px; }
+  header a { color: var(--dim); font-size: 13px; text-decoration: none; }
+  h1 { font-size: 22px; margin: 6px 0 12px; letter-spacing: -.01em; }
+  .picker { position: relative; }
+  .picker input {
+    width: 100%; font: inherit; font-size: 16px; padding: 10px 12px;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--input); color: var(--text);
+  }
+  .picker input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .sugg {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
+    background: var(--input); border: 1px solid var(--line); border-radius: 10px;
+    max-height: 260px; overflow: auto; display: none; padding: 4px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,.35);
+  }
+  .sugg.open { display: block; }
+  .sugg button {
+    display: flex; justify-content: space-between; width: 100%; text-align: left;
+    font: inherit; font-size: 15px; padding: 8px 10px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--text); cursor: pointer;
+  }
+  .sugg button span { color: var(--dim); }
+  .sugg button.hl, .sugg button:hover { background: var(--accent); color: #fff; }
+  .sugg button.hl span, .sugg button:hover span { color: #e6f0ff; }
+  .hint { color: var(--dim); font-size: 12px; margin-top: 8px; }
+
+  .phone {
+    width: 100%; max-width: 400px; background: var(--phone);
+    border-radius: 48px; padding: 12px; box-shadow: 0 30px 60px -25px rgba(0,0,0,.5);
+  }
+  .screen {
+    background: var(--screen); border-radius: 38px; overflow: hidden;
+    display: flex; flex-direction: column; height: min(760px, 82vh); min-height: 520px;
+  }
+  .notch { height: 34px; display: flex; justify-content: center; align-items: center; }
+  .notch i { width: 110px; height: 28px; background: #000; border-radius: 20px; display: block; }
+  .msg { flex: 1; padding: 8px 16px; display: flex; flex-direction: column; min-height: 0; }
+  .msg label { font-size: 13px; color: var(--dim); margin-bottom: 6px; }
+  textarea {
+    flex: 1; resize: none; border: 0; outline: none; background: transparent;
+    color: var(--text); font: inherit; font-size: 19px; line-height: 1.35; caret-color: var(--accent);
+  }
+  .tools { display: flex; gap: 8px; justify-content: flex-end; padding-bottom: 6px; }
+  .tools button {
+    font: inherit; font-size: 13px; color: var(--accent); background: none; border: 0; cursor: pointer; padding: 4px 6px;
+  }
+
+  .kb {
+    background: var(--kb); padding: 8px 3px 26px; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation; position: relative;
+  }
+  .row { display: flex; justify-content: center; gap: 0; margin-bottom: 11px; }
+  .row:last-child { margin-bottom: 0; }
+  .key {
+    flex: 0 0 auto; height: 44px; margin: 0 3px; border-radius: 5px;
+    background: var(--key); color: var(--key-text); box-shadow: 0 1px 0 var(--key-shadow);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 23px; cursor: pointer; position: relative; padding: 0;
+    min-width: 0;
+  }
+  .key.alt { background: var(--key-alt); font-size: 16px; }
+  .key.down { background: var(--key-press); }
+  .key.alt.down { background: var(--key); }
+  .key.on { background: var(--key); }
+  .key svg { width: 22px; height: 22px; }
+  .key.space { font-size: 16px; }
+  .key.ret { font-size: 16px; }
+  .pop {
+    position: absolute; z-index: 10; background: var(--pop); color: var(--key-text);
+    border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    display: flex; padding: 4px; pointer-events: none;
+  }
+  .pop b {
+    font-weight: 400; font-size: 24px; min-width: 34px; height: 44px; display: flex;
+    align-items: center; justify-content: center; border-radius: 6px;
+  }
+  .pop b.sel { background: var(--accent); color: #fff; }
+  .bubble {
+    position: absolute; z-index: 9; background: var(--pop); color: var(--key-text);
+    border-radius: 9px; box-shadow: 0 4px 14px rgba(0,0,0,.3); font-size: 32px;
+    display: flex; align-items: center; justify-content: center; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="./">← projects</a>
+  <h1>iPhone Keyboards</h1>
+  <div class="picker">
+    <input id="lang" type="text" autocomplete="off" spellcheck="false" placeholder="Type a language… (e.g. Persian, Русский, Greek)">
+    <div class="sugg" id="sugg"></div>
+  </div>
+  <div class="hint" id="hint">Hold a key for accents. Your physical keyboard works too — keys map by position.</div>
+</header>
+
+<div class="phone">
+  <div class="screen">
+    <div class="notch"><i></i></div>
+    <div class="msg">
+      <label id="langLabel">English</label>
+      <textarea id="out" inputmode="none" spellcheck="false" placeholder="Start typing…"></textarea>
+      <div class="tools">
+        <button id="copy">Copy</button>
+        <button id="clear">Clear</button>
+      </div>
+    </div>
+    <div class="kb" id="kb"></div>
+  </div>
+</div>
+
+<script>
+// ---------- layouts (iOS letter pages) ----------
+// Each layout: rows (array of strings, chars separated by spaces or one-per-char),
+// shift: optional uppercase rows (else toUpperCase), caps: has shift key,
+// rtl, digits, extra long-press map, space label.
+const LAT_LP = {
+  a:"àáâäæãåā", e:"èéêëēėę", i:"îïíīįì", o:"ôöòóœøōõ", u:"ûüùúū",
+  c:"çćč", n:"ñń", s:"ßśš", z:"žźż", l:"ł", y:"ÿ", g:"ğ", d:"ð", r:"ř", t:"þť"
+};
+const L = (s) => s.split(" ");
+const LANGS = [
+  { id:"en", name:"English", native:"English", rows:["qwertyuiop","asdfghjkl","zxcvbnm"], lp:LAT_LP },
+  { id:"es", name:"Spanish", native:"Español", rows:["qwertyuiop","asdfghjklñ","zxcvbnm"], lp:LAT_LP },
+  { id:"fr", name:"French", native:"Français", rows:["azertyuiop","qsdfghjklm","wxcvbn'"], lp:LAT_LP },
+  { id:"de", name:"German", native:"Deutsch", rows:["qwertzuiopü","asdfghjklöä","yxcvbnm"], lp:LAT_LP },
+  { id:"it", name:"Italian", native:"Italiano", rows:["qwertyuiop","asdfghjkl","zxcvbnm"], lp:LAT_LP },
+  { id:"pt", name:"Portuguese", native:"Português", rows:["qwertyuiop","asdfghjkl","zxcvbnm"], lp:LAT_LP },
+  { id:"nl", name:"Dutch", native:"Nederlands", rows:["qwertyuiop","asdfghjkl","zxcvbnm"], lp:LAT_LP },
+  { id:"sv", name:"Swedish", native:"Svenska", rows:["qwertyuiopå","asdfghjklöä","zxcvbnm"], lp:LAT_LP },
+  { id:"fi", name:"Finnish", native:"Suomi", rows:["qwertyuiopå","asdfghjklöä","zxcvbnm"], lp:LAT_LP },
+  { id:"no", name:"Norwegian", native:"Norsk", rows:["qwertyuiopå","asdfghjkløæ","zxcvbnm"], lp:LAT_LP },
+  { id:"da", name:"Danish", native:"Dansk", rows:["qwertyuiopå","asdfghjklæø","zxcvbnm"], lp:LAT_LP },
+  { id:"is", name:"Icelandic", native:"Íslenska", rows:["qwertyuiopð","asdfghjklæö","zxcvbnmþ"], lp:LAT_LP },
+  { id:"pl", name:"Polish", native:"Polski", rows:["qwertyuiop","asdfghjkl","zxcvbnm"],
+    lp:{...LAT_LP, a:"ąàáâäæãå", e:"ęèéêë", o:"óôöòœø", s:"śšß", c:"ćčç", n:"ńñ", z:"żźž", l:"ł"} },
+  { id:"cs", name:"Czech", native:"Čeština", rows:["qwertzuiop","asdfghjkl","yxcvbnm"],
+    lp:{...LAT_LP, e:"ěéèêë", u:"ůúüû", c:"čçć", r:"ř", s:"šśß", z:"žźż", d:"ď", t:"ť", n:"ňñ", y:"ý"} },
+  { id:"ro", name:"Romanian", native:"Română", rows:["qwertyuiop","asdfghjkl","zxcvbnm"],
+    lp:{...LAT_LP, a:"ăâàáä", i:"îíï", s:"șşß", t:"țţ"} },
+  { id:"hu", name:"Hungarian", native:"Magyar", rows:["qwertzuiop","asdfghjkl","yxcvbnm"],
+    lp:{...LAT_LP, o:"öőóô", u:"üűúû"} },
+  { id:"hr", name:"Croatian", native:"Hrvatski", rows:["qwertzuiopš","asdfghjklčć","yxcvbnmž"], lp:{...LAT_LP, d:"đ"} },
+  { id:"tr", name:"Turkish", native:"Türkçe", rows:["qwertyuıopğü","asdfghjklşi","zxcvbnmöç"],
+    lp:LAT_LP, upper:{ "i":"İ", "ı":"I" } },
+  { id:"vi", name:"Vietnamese", native:"Tiếng Việt", rows:["qwertyuiop","asdfghjkl","zxcvbnm"],
+    lp:{ a:"áàảãạăắằẳẵặâấầẩẫậ", e:"éèẻẽẹêếềểễệ", i:"íìỉĩị", o:"óòỏõọôốồổỗộơớờởỡợ",
+         u:"úùủũụưứừửữự", y:"ýỳỷỹỵ", d:"đ" } },
+  { id:"ru", name:"Russian", native:"Русский", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
+    lp:{ "е":"ё", "ь":"ъ" } },
+  { id:"uk", name:"Ukrainian", native:"Українська", rows:["йцукенгшщзх","фівапролджє","ячсмитьбю"],
+    lp:{ "г":"ґ", "і":"ї", "ь":"ъ" } },
+  { id:"be", name:"Belarusian", native:"Беларуская", rows:["йцукенгшўзх","фывапролджэ","ячсмітьбю"],
+    lp:{ "е":"ё", "г":"ґ" } },
+  { id:"bg", name:"Bulgarian", native:"Български", rows:["явертъуиопч","асдфгхйклшщ","зьцжбнмю"] },
+  { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","ѕџцвбнмђж"] },
+  { id:"kk", name:"Kazakh", native:"Қазақ", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
+    lp:{ "а":"ә", "о":"ө", "у":"ұү", "к":"қ", "г":"ғ", "н":"ң", "и":"і", "х":"һ" } },
+  { id:"el", name:"Greek", native:"Ελληνικά", rows:[";ςερτυθιοπ","ασδφγηξκλ","ζχψωβνμ"],
+    shiftRows:[":΅ΕΡΤΥΘΙΟΠ","ΑΣΔΦΓΗΞΚΛ","ΖΧΨΩΒΝΜ"],
+    lp:{ "α":"ά", "ε":"έ", "η":"ή", "ι":"ίϊΐ", "ο":"ό", "υ":"ύϋΰ", "ω":"ώ", "Α":"Ά", "Ε":"Έ", "Η":"Ή", "Ι":"ΊΪ", "Ο":"Ό", "Υ":"ΎΫ", "Ω":"Ώ" } },
+  { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠",
+    rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" } },
+  { id:"fa", name:"Persian", native:"فارسی", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
+    rows:["ضصثقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپو"], lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
+  { id:"ur", name:"Urdu", native:"اردو", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
+    rows:["طصھدٹپتبجح","مورنلہاکیس","زذڈثغعشخچق"], lp:{ "ی":"ےئ", "ا":"آ", "ہ":"ۂة" } },
+  { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true,
+    rows:["פםןוטארק","ףךלחיעכגדש","ץתצמנהבסז"] },
+  { id:"ko", name:"Korean", native:"한국어", korean:true,
+    rows:["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"],
+    shiftRows:["ㅃㅉㄸㄲㅆㅛㅕㅑㅒㅖ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"] },
+  { id:"ka", name:"Georgian", native:"ქართული", rows:["ქწერტყუიოპ","ასდფგჰჯკლ","ზხცვბნმ"],
+    shiftRows:["ქჭერთყუიოპ","ასდფღჰჟკლ","ძხჩვბნმ"] },
+  { id:"hy", name:"Armenian", native:"Հայերեն", rows:["էթփձջւևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշ"] },
+];
+// Note: Armenian on iOS really is a 4-row letter layout; trim duplicate ւ in row 2.
+LANGS.find(l=>l.id==="hy").rows = ["էթփձջևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշխծ"];
+
+const NUM_ROWS = ["1234567890", L("- / : ; ( ) $ & @ \""), L(". , ? ! '")];
+const SYM_ROWS = [L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". , ? ! '")];
+const NUM_LP = { "0":"°", "-":"–—•", "/":"\\", "$":"€£¥₩₽", "&":"§", "\"":"„“”«»", ".":"…", "?":"¿", "!":"¡", "'":"‘’`" };
+
+// ---------- state ----------
+let lang = LANGS[0];
+let page = "abc";      // abc | 123 | sym
+let shift = 1;         // 0 off, 1 once, 2 caps lock
+let lastShiftTap = 0;
+const out = document.getElementById("out");
+const kb = document.getElementById("kb");
+
+const ICONS = {
+  shift:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5 3.5 12.5H8v7h8v-7h4.5z"/></svg>',
+  shiftOn:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5 3.5 12.5H8v7h8v-7h4.5z"/></svg>',
+  caps:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5 3.5 11.5H8v5h8v-5h4.5z"/><path d="M8 19.5h8" fill="none"/></svg>',
+  del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M8.5 5H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H8.5L2.5 12z"/><path d="m11 9 6 6m0-6-6 6"/></svg>',
+  globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>',
+};
+
+// ---------- rendering ----------
+function chars(r) { return Array.isArray(r) ? r : [...r]; }
+function upper(c) {
+  if (lang.upper && lang.upper[c]) return lang.upper[c];
+  return c.toUpperCase();
+}
+function currentRows() {
+  if (page === "123") {
+    const r = NUM_ROWS.map(chars);
+    if (lang.digits) r[0] = [...lang.digits];
+    return r;
+  }
+  if (page === "sym") return SYM_ROWS.map(chars);
+  if (shift && lang.shiftRows) return lang.shiftRows.map(chars);
+  const rows = lang.rows.map(chars);
+  return (shift && !lang.noShift) ? rows.map(r => r.map(upper)) : rows;
+}
+
+function render() {
+  const rows = currentRows();
+  const maxLen = Math.max(10, ...rows.map(r => r.length + (rows.indexOf(r) === rows.length - 1 ? 0 : 0)));
+  const w = kb.clientWidth - 6;
+  const unit = w / maxLen;           // width per letter slot (incl margins)
+  kb.innerHTML = "";
+  rows.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    const last = i === rows.length - 1;
+    if (last) {
+      // shift / #+= on left, delete on right
+      const left = page === "abc"
+        ? (lang.noShift ? null : mk("alt", shift === 2 ? ICONS.caps : shift ? ICONS.shiftOn : ICONS.shift, "shift"))
+        : mk("alt", page === "123" ? "#+=" : "123", page === "123" ? "sym" : "123");
+      const nLetters = r.length;
+      const special = Math.max(unit * 1.3, (w - nLetters * unit) / 2 - 6);
+      if (left) { left.style.width = (Math.min(special, unit * 1.6) - 6) + "px"; left.style.marginRight = "auto"; row.appendChild(left); }
+      const mid = document.createElement("div");
+      mid.style.display = "flex";
+      // number pages: wider punctuation keys like iOS
+      const kw = page !== "abc" ? Math.min(unit * 1.4, (w - 2 * unit * 1.4) / nLetters) : unit;
+      r.forEach(c => { const k = mk("", c, "char", c); k.style.width = (kw - 6) + "px"; mid.appendChild(k); });
+      row.appendChild(mid);
+      const del = mk("alt", ICONS.del, "del");
+      del.style.width = (Math.min(special, unit * 1.6) - 6) + "px";
+      del.style.marginLeft = "auto";
+      row.appendChild(del);
+      row.style.justifyContent = "space-between";
+      row.style.padding = "0";
+    } else {
+      r.forEach(c => { const k = mk("", c, "char", c); k.style.width = (unit - 6) + "px"; row.appendChild(k); });
+    }
+    kb.appendChild(row);
+  });
+  // bottom row
+  const row = document.createElement("div");
+  row.className = "row";
+  const b123 = mk("alt", page === "abc" ? (lang.digits ? lang.digits.slice(0,3) : "123") : "ABC", page === "abc" ? "123" : "abc");
+  const glob = mk("alt", ICONS.globe, "globe");
+  const space = mk("space", lang.native.toLowerCase() === "english" ? "space" : lang.native, "space");
+  const ret = mk("alt ret", "return", "ret");
+  b123.style.width = (unit * 1.25 - 6) + "px";
+  glob.style.width = (unit * 1.25 - 6) + "px";
+  ret.style.width = (unit * 2.5 - 6) + "px";
+  space.style.flex = "1";
+  [b123, glob, space, ret].forEach(k => row.appendChild(k));
+  kb.appendChild(row);
+
+  out.dir = lang.rtl ? "rtl" : "ltr";
+  document.getElementById("langLabel").textContent = `${lang.name} — ${lang.native}`;
+}
+
+function mk(cls, html, action, ch) {
+  const k = document.createElement("div");
+  k.className = "key " + cls;
+  k.innerHTML = html;
+  k.dataset.action = action;
+  if (ch !== undefined) k.dataset.ch = ch;
+  if (action === "shift" && shift) k.classList.add("on");
+  return k;
+}
+
+// ---------- text editing ----------
+function insertText(s) {
+  const a = out.selectionStart, b = out.selectionEnd;
+  out.value = out.value.slice(0, a) + s + out.value.slice(b);
+  out.selectionStart = out.selectionEnd = a + s.length;
+}
+function replaceBefore(n, s) {
+  const a = out.selectionStart;
+  out.value = out.value.slice(0, a - n) + s + out.value.slice(out.selectionEnd);
+  out.selectionStart = out.selectionEnd = a - n + s.length;
+}
+function backspace() {
+  const a = out.selectionStart, b = out.selectionEnd;
+  if (a !== b) { insertText(""); return; }
+  if (a === 0) return;
+  // remove one full code point / grapheme-ish
+  const before = out.value.slice(0, a);
+  const seg = [...before];
+  const lastLen = seg[seg.length - 1].length;
+  out.value = out.value.slice(0, a - lastLen) + out.value.slice(a);
+  out.selectionStart = out.selectionEnd = a - lastLen;
+}
+
+// ---------- Hangul composition ----------
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const JUNG = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
+const JONG = ["", ..."ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ"];
+const VV = { "ㅗㅏ":"ㅘ","ㅗㅐ":"ㅙ","ㅗㅣ":"ㅚ","ㅜㅓ":"ㅝ","ㅜㅔ":"ㅞ","ㅜㅣ":"ㅟ","ㅡㅣ":"ㅢ" };
+const CC = { "ㄱㅅ":"ㄳ","ㄴㅈ":"ㄵ","ㄴㅎ":"ㄶ","ㄹㄱ":"ㄺ","ㄹㅁ":"ㄻ","ㄹㅂ":"ㄼ","ㄹㅅ":"ㄽ","ㄹㅌ":"ㄾ","ㄹㅍ":"ㄿ","ㄹㅎ":"ㅀ","ㅂㅅ":"ㅄ" };
+const CC_SPLIT = Object.fromEntries(Object.entries(CC).map(([k,v]) => [v, [...k]]));
+const syl = (c, v, t = 0) => String.fromCharCode(0xAC00 + (c * 21 + v) * 28 + t);
+function decomp(ch) {
+  const n = ch.charCodeAt(0) - 0xAC00;
+  if (n < 0 || n > 11171) return null;
+  return [Math.floor(n / 588), Math.floor((n % 588) / 28), n % 28];
+}
+function hangul(j) {
+  const a = out.selectionStart;
+  const prev = a > 0 && a === out.selectionEnd ? out.value[a - 1] : "";
+  const isV = JUNG.includes(j);
+  const d = prev ? decomp(prev) : null;
+  if (!isV) {
+    if (d && d[2] === 0 && JONG.indexOf(j) > 0) return replaceBefore(1, syl(d[0], d[1], JONG.indexOf(j)));
+    if (d && d[2] > 0) {
+      const comb = CC[JONG[d[2]] + j];
+      if (comb) return replaceBefore(1, syl(d[0], d[1], JONG.indexOf(comb)));
+    }
+    return insertText(j);
+  }
+  // vowel
+  if (prev && CHO.includes(prev)) return replaceBefore(1, syl(CHO.indexOf(prev), JUNG.indexOf(j)));
+  if (d && d[2] === 0) {
+    const comb = VV[JUNG[d[1]] + j];
+    if (comb) return replaceBefore(1, syl(d[0], JUNG.indexOf(comb)));
+  }
+  if (d && d[2] > 0) {
+    const jong = JONG[d[2]];
+    const split = CC_SPLIT[jong];
+    const keep = split ? JONG.indexOf(split[0]) : 0;
+    const move = split ? split[1] : jong;
+    if (CHO.includes(move)) return replaceBefore(1, syl(d[0], d[1], keep) + syl(CHO.indexOf(move), JUNG.indexOf(j)));
+  }
+  if (prev && VV[prev + j]) return replaceBefore(1, VV[prev + j]);
+  insertText(j);
+}
+
+// ---------- actions ----------
+function typeChar(c) {
+  if (lang.korean && page === "abc") hangul(c); else insertText(c);
+  if (page === "abc" && shift === 1) { shift = 0; render(); }
+  else if (page !== "abc" && c === "'" ) { page = "abc"; render(); }
+}
+function act(action, ch) {
+  switch (action) {
+    case "char": typeChar(ch); break;
+    case "shift": {
+      const now = Date.now();
+      if (shift === 2) shift = 0;
+      else if (shift === 1 && now - lastShiftTap < 350) shift = 2;
+      else shift = shift ? 0 : 1;
+      lastShiftTap = now; render(); break;
+    }
+    case "del": backspace(); break;
+    case "123": page = "123"; render(); break;
+    case "sym": page = "sym"; render(); break;
+    case "abc": page = "abc"; render(); break;
+    case "space": {
+      // iOS double-space → ". "
+      const a = out.selectionStart;
+      if (a >= 2 && out.value[a - 1] === " " && /[^\s.!?]/u.test(out.value[a - 2]) && Date.now() - lastSpace < 500) {
+        replaceBefore(1, lang.rtl && lang.id !== "he" ? ". " : ". ");
+        if (!lang.noShift) { shift = 1; render(); }
+      } else insertText(" ");
+      lastSpace = Date.now();
+      if (page !== "abc") { page = "abc"; render(); }
+      break;
+    }
+    case "ret": insertText("\n"); if (!lang.noShift && page === "abc") { shift = 1; render(); } break;
+    case "globe": setLang(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]); break;
+  }
+  out.focus({ preventScroll: true });
+}
+let lastSpace = 0;
+
+// ---------- pointer handling (tap, key bubble, long-press accents, held delete) ----------
+let press = null;
+const lpMap = () => page === "abc" ? (lang.lp || {}) : NUM_LP;
+function variantsFor(ch) {
+  const lo = ch.toLowerCase();
+  let v = lpMap()[ch] || lpMap()[lo];
+  if (!v) return null;
+  v = [...v];
+  if (ch !== lo && !lang.shiftRows) v = v.map(x => x.toUpperCase());
+  return [ch, ...v];
+}
+function showBubble(key) {
+  const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.textContent = key.dataset.ch;
+  b.style.width = Math.max(r.width + 16, 44) + "px";
+  b.style.height = "54px";
+  b.style.left = (r.left - p.left + r.width / 2 - Math.max(r.width + 16, 44) / 2) + "px";
+  b.style.top = (r.top - p.top - 58) + "px";
+  kb.appendChild(b);
+  return b;
+}
+function showPop(key, vars) {
+  const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
+  const pop = document.createElement("div");
+  pop.className = "pop";
+  vars.forEach((v, i) => { const b = document.createElement("b"); b.textContent = v; if (i === 0) b.className = "sel"; pop.appendChild(b); });
+  kb.appendChild(pop);
+  const pw = pop.offsetWidth;
+  let left = r.left - p.left + r.width / 2 - 21;
+  if (left + pw > p.width - 4) left = Math.max(4, r.right - p.left - pw + 4);
+  pop.style.left = left + "px";
+  pop.style.top = (r.top - p.top - 58) + "px";
+  return pop;
+}
+function selectInPop(x) {
+  if (!press || !press.pop) return;
+  const items = [...press.pop.children];
+  let best = 0;
+  items.forEach((b, i) => {
+    const br = b.getBoundingClientRect();
+    if (x >= br.left) best = i;
+  });
+  items.forEach((b, i) => b.classList.toggle("sel", i === best));
+  press.sel = items[best].textContent;
+}
+function endPress(commit) {
+  if (!press) return;
+  const p = press; press = null;
+  clearTimeout(p.timer); clearInterval(p.repeat);
+  p.key.classList.remove("down");
+  p.bubble && p.bubble.remove(); p.pop && p.pop.remove();
+  if (!commit) return;
+  if (p.pop) { if (p.sel) typeChar(p.sel); out.focus({ preventScroll: true }); }
+  else if (!p.repeated) act(p.key.dataset.action, p.key.dataset.ch);
+}
+kb.addEventListener("pointerdown", e => {
+  const key = e.target.closest(".key");
+  if (!key) return;
+  e.preventDefault();
+  endPress(false);
+  key.setPointerCapture?.(e.pointerId);
+  key.classList.add("down");
+  press = { key, id: e.pointerId };
+  const ch = key.dataset.ch;
+  if (key.dataset.action === "char") {
+    press.bubble = showBubble(key);
+    const vars = variantsFor(ch);
+    if (vars) press.timer = setTimeout(() => {
+      if (!press) return;
+      press.bubble && press.bubble.remove(); press.bubble = null;
+      press.pop = showPop(key, vars); press.sel = vars[0];
+    }, 380);
+  } else if (key.dataset.action === "del") {
+    press.timer = setTimeout(() => {
+      if (!press) return;
+      press.repeated = true; backspace();
+      press.repeat = setInterval(backspace, 80);
+    }, 450);
+  }
+});
+kb.addEventListener("pointermove", e => { if (press && press.pop) selectInPop(e.clientX); });
+kb.addEventListener("pointerup", () => endPress(true));
+kb.addEventListener("pointercancel", () => endPress(false));
+
+// ---------- physical keyboard (positional mapping) ----------
+const CODES = [
+  ["KeyQ","KeyW","KeyE","KeyR","KeyT","KeyY","KeyU","KeyI","KeyO","KeyP","BracketLeft","BracketRight"],
+  ["KeyA","KeyS","KeyD","KeyF","KeyG","KeyH","KeyJ","KeyK","KeyL","Semicolon","Quote","Backslash"],
+  ["KeyZ","KeyX","KeyC","KeyV","KeyB","KeyN","KeyM","Comma","Period","Slash"],
+];
+function flash(sel) {
+  const k = kb.querySelector(sel);
+  if (!k) return;
+  k.classList.add("down"); setTimeout(() => k.classList.remove("down"), 110);
+}
+out.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "Backspace") { e.preventDefault(); backspace(); flash('[data-action="del"]'); return; }
+  if (e.key === "Enter") { e.preventDefault(); act("ret"); flash('[data-action="ret"]'); return; }
+  if (e.code === "Space") { e.preventDefault(); act("space"); flash('[data-action="space"]'); return; }
+  if (e.key.startsWith("Arrow") || e.key === "Tab" || e.key === "Shift") return;
+  if (page === "abc") {
+    // find row/index from code; Armenian has 4 rows, so offset when needed
+    let rows = lang.shiftRows && e.shiftKey ? lang.shiftRows.map(chars) : lang.rows.map(chars);
+    const off = rows.length > 3 ? 1 : 0;
+    for (let ri = 0; ri < 3; ri++) {
+      const ci = CODES[ri].indexOf(e.code);
+      if (ci === -1) continue;
+      const row = rows[ri + off];
+      if (!row || ci >= row.length) break;
+      e.preventDefault();
+      let c = row[ci];
+      if ((e.shiftKey || shift) && !lang.shiftRows && !lang.noShift) c = upper(c);
+      else if (shift && lang.shiftRows && !e.shiftKey) c = lang.shiftRows.map(chars)[ri + off][ci];
+      typeChar(c);
+      const k = [...kb.querySelectorAll('.key[data-action="char"]')].find(k => k.dataset.ch === c || k.dataset.ch === c.toLowerCase() || k.dataset.ch === c.toUpperCase());
+      if (k) { k.classList.add("down"); setTimeout(() => k.classList.remove("down"), 110); }
+      return;
+    }
+    // Armenian top row from the number row
+    if (off && /^Digit|^Minus|^Equal/.test(e.code)) {
+      const map = ["Digit1","Digit2","Digit3","Digit4","Digit5","Digit6","Digit7","Digit8","Digit9","Digit0","Minus","Equal"];
+      const ci = map.indexOf(e.code);
+      if (ci >= 0 && ci < rows[0].length) { e.preventDefault(); typeChar(e.shiftKey || shift ? upper(rows[0][ci]) : rows[0][ci]); return; }
+    }
+    if (lang.digits && /^Digit\d$/.test(e.code) && !e.shiftKey) {
+      e.preventDefault(); const d = +e.code.slice(5); insertText(lang.digits[(d + 9) % 10]); return;
+    }
+  }
+  // anything else (digits, punctuation): let the browser insert it
+});
+
+// ---------- language picker ----------
+const input = document.getElementById("lang");
+const sugg = document.getElementById("sugg");
+let hl = 0, matches = [];
+function norm(s) { return s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, ""); }
+function search(q) {
+  q = norm(q.trim());
+  if (!q) return LANGS.slice();
+  const scored = LANGS.map(l => {
+    const hay = [l.name, l.native, l.id].map(norm);
+    let s = 99;
+    hay.forEach(h => { if (h === q) s = Math.min(s, 0); else if (h.startsWith(q)) s = Math.min(s, 1); else if (h.includes(q)) s = Math.min(s, 2); });
+    return [s, l];
+  }).filter(x => x[0] < 99).sort((a, b) => a[0] - b[0]);
+  return scored.map(x => x[1]);
+}
+function showSugg() {
+  matches = search(input.value);
+  hl = 0;
+  sugg.innerHTML = "";
+  if (!matches.length) {
+    sugg.innerHTML = '<button disabled>No alphabet keyboard for that one (yet)</button>';
+  }
+  matches.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.innerHTML = `${l.name}<span>${l.native}</span>`;
+    if (i === hl) b.className = "hl";
+    b.addEventListener("mousedown", e => { e.preventDefault(); pick(l); });
+    sugg.appendChild(b);
+  });
+  sugg.classList.add("open");
+}
+function pick(l) { setLang(l); input.value = ""; input.placeholder = `${l.name} — type another language…`; sugg.classList.remove("open"); out.focus(); }
+input.addEventListener("input", showSugg);
+input.addEventListener("focus", showSugg);
+input.addEventListener("blur", () => setTimeout(() => sugg.classList.remove("open"), 100));
+input.addEventListener("keydown", e => {
+  if (!matches.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    hl = (hl + (e.key === "ArrowDown" ? 1 : -1) + matches.length) % matches.length;
+    [...sugg.children].forEach((b, i) => b.classList.toggle("hl", i === hl));
+    sugg.children[hl].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter") { e.preventDefault(); pick(matches[hl]); }
+  else if (e.key === "Escape") sugg.classList.remove("open");
+});
+
+function setLang(l) {
+  lang = l; page = "abc";
+  shift = l.noShift || l.korean ? 0 : (out.value === "" || /[.!?\n]\s*$/.test(out.value) ? 1 : 0);
+  try { localStorage.setItem("ikb-lang", l.id); } catch (e) {}
+  const u = new URL(location); u.hash = l.id; history.replaceState(null, "", u);
+  render();
+}
+
+document.getElementById("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(out.value); } catch (e) { out.select(); document.execCommand("copy"); }
+  const b = document.getElementById("copy"); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200);
+});
+document.getElementById("clear").addEventListener("click", () => { out.value = ""; if (!lang.noShift && !lang.korean) shift = 1; render(); out.focus(); });
+
+let initial = location.hash.slice(1);
+try { initial = initial || localStorage.getItem("ikb-lang"); } catch (e) {}
+setLang(LANGS.find(l => l.id === initial) || LANGS[0]);
+new ResizeObserver(() => render()).observe(kb);
+</script>
+</body>
+</html>
