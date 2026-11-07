@@ -195,8 +195,10 @@ const LANGS = [
   { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","џцвбнмђж"], abcLabel:"АБВ",
     numRows:["1234567890", L("- / : ; ( ) € & @ \""), L(". , ? ! '")],
     symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ £ ¥ •"), L(". , ? ! '")] },
-  { id:"kk", name:"Kazakh", native:"Қазақ", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
-    lp:{ "а":"ә", "о":"ө", "у":"ұү", "к":"қ", "г":"ғ", "н":"ң", "и":"і", "х":"һ" } },
+  { id:"kk", name:"Kazakh", native:"Қазақ", abcLabel:"АӘБ",
+    rows:["әіңғүұқөһ","йцукенгшщзх","фывапролджэ","ячсмитьбю"], lp:{ "е":"ё", "ь":"ъ" },
+    numRows:["1234567890", L("- / : ; ( ) ₸ & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ € ₽ •"), L(". , ? ! '")] },
   { id:"el", name:"Greek", native:"Ελληνικά", rows:[";ςερτυθιοπ","ασδφγηξκλ","ζχψωβνμ"],
     shiftRows:[":΅ΕΡΤΥΘΙΟΠ","ΑΣΔΦΓΗΞΚΛ","ΖΧΨΩΒΝΜ"],
     lp:{ "α":"ά", "ε":"έ", "η":"ή", "ι":"ίϊΐ", "ο":"ό", "υ":"ύϋΰ", "ω":"ώ", "Α":"Ά", "Ε":"Έ", "Η":"Ή", "Ι":"ΊΪ", "Ο":"Ό", "Υ":"ΎΫ", "Ω":"Ώ" } },
@@ -287,7 +289,7 @@ function render() {
         ? (lang.noShift ? null : mk("alt", shift === 2 ? ICONS.caps : shift ? ICONS.shiftOn : ICONS.shift, "shift"))
         : mk("alt", page === "123" ? "#+=" : "123", page === "123" ? "sym" : "123");
       const nLetters = r.length;
-      const special = Math.max(unit * 1.3, (w - nLetters * unit) / 2 - 6);
+      const special = Math.max(unit, Math.min(unit * 1.3, (w - nLetters * unit) / 2 - 6));
       if (left) { left.style.width = (Math.min(special, unit * 1.6) - 6) + "px"; left.style.marginRight = "auto"; row.appendChild(left); }
       const mid = document.createElement("div");
       mid.style.display = "flex";
