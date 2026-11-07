@@ -95,8 +95,9 @@
     background: var(--key); color: var(--key-text); box-shadow: 0 1px 0 var(--key-shadow);
     display: flex; align-items: center; justify-content: center;
     font-size: 23px; cursor: pointer; position: relative; padding: 0;
-    min-width: 0;
+    min-width: 0; direction: ltr; unicode-bidi: isolate; white-space: nowrap;
   }
+  .key.word { font-size: 15px; }
   .key.alt { background: var(--key-alt); font-size: 16px; }
   .key.down { background: var(--key-press); }
   .key.alt.down { background: var(--key); }
@@ -198,9 +199,15 @@ const LANGS = [
     shiftRows:[":΅ΕΡΤΥΘΙΟΠ","ΑΣΔΦΓΗΞΚΛ","ΖΧΨΩΒΝΜ"],
     lp:{ "α":"ά", "ε":"έ", "η":"ή", "ι":"ίϊΐ", "ο":"ό", "υ":"ύϋΰ", "ω":"ώ", "Α":"Ά", "Ε":"Έ", "Η":"Ή", "Ι":"ΊΪ", "Ο":"Ό", "Υ":"ΎΫ", "Ω":"Ώ" } },
   { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠",
-    rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" } },
+    rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" },
+    numRows:["١٢٣٤٥٦٧٨٩٠", L("- / : ؛ ( ) $ & @ \""), L(". ، ؟ ! '")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". ، ؟ ! '")],
+    extra:{ label:"◌ً", ch:"\u064B", lp:"\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652" } },
   { id:"fa", name:"Persian", native:"فارسی", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
-    rows:["ضصثقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپو"], lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
+    rows:["ضصقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپوث"],
+    numRows:["۱۲۳۴۵۶۷۸۹۰", L("- / : ؛ ( ) ریال @ « »"), L(". ، ؟ ! ,")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > & • ' \""), L(". ، ؟ ! ,")],
+    extra:{ label:"⋮", ch:"\u200C", title:"half-space (ZWNJ)" }, lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
   { id:"ur", name:"Urdu", native:"اردو", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
     rows:["طصھدٹپتبجح","مورنلہاکیس","زذڈثغعشخچق"], lp:{ "ی":"ےئ", "ا":"آ", "ہ":"ۂة" } },
   { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true,
@@ -242,6 +249,8 @@ function upper(c) {
   return c.toUpperCase();
 }
 function currentRows() {
+  if (page === "123" && lang.numRows) return lang.numRows.map(chars);
+  if (page === "sym" && lang.symRows) return lang.symRows.map(chars);
   if (page === "123") {
     const r = NUM_ROWS.map(chars);
     if (lang.digits) r[0] = [...lang.digits];
@@ -299,7 +308,15 @@ function render() {
   glob.style.width = (unit * 1.25 - 6) + "px";
   ret.style.width = (unit * 2.5 - 6) + "px";
   space.style.flex = "1";
-  [b123, glob, space, ret].forEach(k => row.appendChild(k));
+  const keys = [b123, glob, space];
+  if (lang.extra) {
+    const x = mk("", lang.extra.label, "char", lang.extra.ch);
+    x.style.width = (unit * 1.25 - 6) + "px"; x.style.fontSize = "20px";
+    if (lang.extra.title) x.title = lang.extra.title;
+    keys.push(x);
+  }
+  keys.push(ret);
+  keys.forEach(k => row.appendChild(k));
   kb.appendChild(row);
 
   out.dir = lang.rtl ? "rtl" : "ltr";
@@ -311,7 +328,7 @@ function mk(cls, html, action, ch) {
   k.className = "key " + cls;
   k.innerHTML = html;
   k.dataset.action = action;
-  if (ch !== undefined) k.dataset.ch = ch;
+  if (ch !== undefined) { k.dataset.ch = ch; if ([...ch].length > 1) k.classList.add("word"); }
   if (action === "shift" && shift) k.classList.add("on");
   return k;
 }
@@ -425,6 +442,7 @@ let press = null;
 const lpMap = () => page === "abc" ? (lang.lp || {}) : NUM_LP;
 function variantsFor(ch) {
   const lo = ch.toLowerCase();
+  if (lang.extra && ch === lang.extra.ch) return lang.extra.lp ? [...lang.extra.lp] : null;
   let v = lpMap()[ch] || lpMap()[lo];
   if (!v) return null;
   v = [...v];
@@ -435,7 +453,7 @@ function showBubble(key) {
   const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
   const b = document.createElement("div");
   b.className = "bubble";
-  b.textContent = key.dataset.ch;
+  b.textContent = key.dataset.ch === "\u200C" ? "⋮" : key.dataset.ch;
   b.style.width = Math.max(r.width + 16, 44) + "px";
   b.style.height = "54px";
   b.style.left = (r.left - p.left + r.width / 2 - Math.max(r.width + 16, 44) / 2) + "px";
@@ -447,7 +465,7 @@ function showPop(key, vars) {
   const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
   const pop = document.createElement("div");
   pop.className = "pop";
-  vars.forEach((v, i) => { const b = document.createElement("b"); b.textContent = v; if (i === 0) b.className = "sel"; pop.appendChild(b); });
+  vars.forEach((v, i) => { const b = document.createElement("b"); b.textContent = /\p{M}/u.test(v) ? "◌" + v : v; b.dataset.v = v; if (i === 0) b.className = "sel"; pop.appendChild(b); });
   kb.appendChild(pop);
   const pw = pop.offsetWidth;
   let left = r.left - p.left + r.width / 2 - 21;
@@ -465,7 +483,7 @@ function selectInPop(x) {
     if (x >= br.left) best = i;
   });
   items.forEach((b, i) => b.classList.toggle("sel", i === best));
-  press.sel = items[best].textContent;
+  press.sel = items[best].dataset.v;
 }
 function endPress(commit) {
   if (!press) return;
