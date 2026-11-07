@@ -192,7 +192,9 @@ const LANGS = [
   { id:"be", name:"Belarusian", native:"Беларуская", rows:["йцукенгшўзх","фывапролджэ","ячсмітьбю"],
     lp:{ "е":"ё", "г":"ґ" } },
   { id:"bg", name:"Bulgarian", native:"Български", rows:["явертъуиопч","асдфгхйклшщ","зьцжбнмю"] },
-  { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","ѕџцвбнмђж"] },
+  { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","џцвбнмђж"], abcLabel:"АБВ",
+    numRows:["1234567890", L("- / : ; ( ) € & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ £ ¥ •"), L(". , ? ! '")] },
   { id:"kk", name:"Kazakh", native:"Қазақ", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
     lp:{ "а":"ә", "о":"ө", "у":"ұү", "к":"қ", "г":"ғ", "н":"ң", "и":"і", "х":"һ" } },
   { id:"el", name:"Greek", native:"Ελληνικά", rows:[";ςερτυθιοπ","ασδφγηξκλ","ζχψωβνμ"],
@@ -223,10 +225,11 @@ const LANGS = [
     shiftRows:["ㅃㅉㄸㄲㅆㅛㅕㅑㅒㅖ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"] },
   { id:"ka", name:"Georgian", native:"ქართული", rows:["ქწერტყუიოპ","ასდფგჰჯკლ","ზხცვბნმ"],
     shiftRows:["ქჭერთყუიოპ","ასდფღჰჟკლ","ძხჩვბნმ"] },
-  { id:"hy", name:"Armenian", native:"Հայերեն", rows:["էթփձջւևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշ"] },
+  { id:"hy", name:"Armenian", native:"Հայերեն", abcLabel:"ԱԲԳ", numPlain:true,
+    rows:["էթփձջևրչճժշ","քոեռտըւիօպխ","ասդֆգհյկլծ","զղցվբնմ"],
+    shiftRows:[L("Է Թ Փ Ձ Ջ Եւ Ր Չ Ճ Ժ Շ"),"ՔՈԵՌՏԸՒԻՕՊԽ","ԱՍԴՖԳՀՅԿԼԾ","ԶՂՑՎԲՆՄ"],
+    numRows:["1234567890", L("- + = % * / < > ( )"), L(". , ? ! \" ' € # @"), L(": ՝ ՞ ՜ ՚")] },
 ];
-// Note: Armenian on iOS really is a 4-row letter layout; trim duplicate ւ in row 2.
-LANGS.find(l=>l.id==="hy").rows = ["էթփձջևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշխծ"];
 
 const NUM_ROWS = ["1234567890", L("- / : ; ( ) $ & @ \""), L(". , ? ! '")];
 const SYM_ROWS = [L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". , ? ! '")];
@@ -278,7 +281,7 @@ function render() {
     const row = document.createElement("div");
     row.className = "row";
     const last = i === rows.length - 1;
-    if (last && !(lang.delTop && page === "abc")) {
+    if (last && !(lang.delTop && page === "abc") && !(lang.numPlain && page !== "abc")) {
       // shift / #+= on left, delete on right
       const left = page === "abc"
         ? (lang.noShift ? null : mk("alt", shift === 2 ? ICONS.caps : shift ? ICONS.shiftOn : ICONS.shift, "shift"))
