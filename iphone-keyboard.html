@@ -86,7 +86,7 @@
 
   .kb {
     background: var(--kb); padding: 8px 3px 26px; user-select: none; -webkit-user-select: none;
-    touch-action: manipulation; position: relative;
+    touch-action: none; position: relative; -webkit-touch-callout: none;
   }
   .row { display: flex; justify-content: center; gap: 0; margin-bottom: 11px; }
   .row:last-child { margin-bottom: 0; }
@@ -95,8 +95,9 @@
     background: var(--key); color: var(--key-text); box-shadow: 0 1px 0 var(--key-shadow);
     display: flex; align-items: center; justify-content: center;
     font-size: 23px; cursor: pointer; position: relative; padding: 0;
-    min-width: 0;
+    min-width: 0; direction: ltr; unicode-bidi: isolate; white-space: nowrap;
   }
+  .key.word { font-size: 15px; }
   .key.alt { background: var(--key-alt); font-size: 16px; }
   .key.down { background: var(--key-press); }
   .key.alt.down { background: var(--key); }
@@ -114,6 +115,9 @@
     align-items: center; justify-content: center; border-radius: 6px;
   }
   .pop b.sel { background: var(--accent); color: #fff; }
+  .pop.sticky { pointer-events: auto; }
+  .pop.sticky b { cursor: pointer; }
+  .pop.sticky b:hover { background: var(--accent); color: #fff; }
   .bubble {
     position: absolute; z-index: 9; background: var(--pop); color: var(--key-text);
     border-radius: 9px; box-shadow: 0 4px 14px rgba(0,0,0,.3); font-size: 32px;
@@ -181,7 +185,7 @@ const LANGS = [
   { id:"hr", name:"Croatian", native:"Hrvatski", rows:["qwertzuiopš","asdfghjklčć","yxcvbnmž"], lp:{...LAT_LP, d:"đ"} },
   { id:"tr", name:"Turkish", native:"Türkçe", rows:["qwertyuıopğü","asdfghjklşi","zxcvbnmöç"],
     lp:LAT_LP, upper:{ "i":"İ", "ı":"I" } },
-  { id:"vi", name:"Vietnamese", native:"Tiếng Việt", rows:["qwertyuiop","asdfghjkl","zxcvbnm"],
+  { id:"vi", name:"Vietnamese", native:"Tiếng Việt", telex:true, rows:["qwertyuiop","asdfghjkl","zxcvbnm"],
     lp:{ a:"áàảãạăắằẳẵặâấầẩẫậ", e:"éèẻẽẹêếềểễệ", i:"íìỉĩị", o:"óòỏõọôốồổỗộơớờởỡợ",
          u:"úùủũụưứừửữự", y:"ýỳỷỹỵ", d:"đ" } },
   { id:"ru", name:"Russian", native:"Русский", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
@@ -191,29 +195,46 @@ const LANGS = [
   { id:"be", name:"Belarusian", native:"Беларуская", rows:["йцукенгшўзх","фывапролджэ","ячсмітьбю"],
     lp:{ "е":"ё", "г":"ґ" } },
   { id:"bg", name:"Bulgarian", native:"Български", rows:["явертъуиопч","асдфгхйклшщ","зьцжбнмю"] },
-  { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","ѕџцвбнмђж"] },
-  { id:"kk", name:"Kazakh", native:"Қазақ", rows:["йцукенгшщзх","фывапролджэ","ячсмитьбю"],
-    lp:{ "а":"ә", "о":"ө", "у":"ұү", "к":"қ", "г":"ғ", "н":"ң", "и":"і", "х":"һ" } },
+  { id:"sr", name:"Serbian", native:"Српски", rows:["љњертзуиопш","асдфгхјклчћ","џцвбнмђж"], abcLabel:"АБВ",
+    numRows:["1234567890", L("- / : ; ( ) € & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ £ ¥ •"), L(". , ? ! '")] },
+  { id:"kk", name:"Kazakh", native:"Қазақ", abcLabel:"АӘБ",
+    rows:["әіңғүұқөһ","йцукенгшщзх","фывапролджэ","ячсмитьбю"], lp:{ "е":"ё", "ь":"ъ" },
+    numRows:["1234567890", L("- / : ; ( ) ₸ & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ € ₽ •"), L(". , ? ! '")] },
   { id:"el", name:"Greek", native:"Ελληνικά", rows:[";ςερτυθιοπ","ασδφγηξκλ","ζχψωβνμ"],
     shiftRows:[":΅ΕΡΤΥΘΙΟΠ","ΑΣΔΦΓΗΞΚΛ","ΖΧΨΩΒΝΜ"],
     lp:{ "α":"ά", "ε":"έ", "η":"ή", "ι":"ίϊΐ", "ο":"ό", "υ":"ύϋΰ", "ω":"ώ", "Α":"Ά", "Ε":"Έ", "Η":"Ή", "Ι":"ΊΪ", "Ο":"Ό", "Υ":"ΎΫ", "Ω":"Ώ" } },
-  { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠",
-    rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" } },
+  { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠", abcLabel:"ابج",
+    rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" },
+    numRows:["١٢٣٤٥٦٧٨٩٠", L("- / : ؛ ( ) $ & @ \""), L(". ، ؟ ! '")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". ، ؟ ! '")],
+    extra:{ label:"◌ً", ch:"\u064B", lp:"\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652" } },
   { id:"fa", name:"Persian", native:"فارسی", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
-    rows:["ضصثقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپو"], lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
-  { id:"ur", name:"Urdu", native:"اردو", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
-    rows:["طصھدٹپتبجح","مورنلہاکیس","زذڈثغعشخچق"], lp:{ "ی":"ےئ", "ا":"آ", "ہ":"ۂة" } },
-  { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true,
-    rows:["פםןוטארק","ףךלחיעכגדש","ץתצמנהבסז"] },
+    rows:["ضصقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپوث"],
+    numRows:["۱۲۳۴۵۶۷۸۹۰", L("- / : ؛ ( ) ریال @ « »"), L(". ، ؟ ! ,")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > & • ' \""), L(". ، ؟ ! ,")],
+    extra:{ label:"⋮", ch:"\u200C", title:"half-space (ZWNJ)", all:true }, abcLabel:"ابج", lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
+  { id:"ur", name:"Urdu", native:"اردو", rtl:true, manualShift:true, digits:"۱۲۳۴۵۶۷۸۹۰", abcLabel:"ابج",
+    rows:["قوعرتےیئہپ","اسدفگھجکل","زشچطبنم"],
+    shiftRows:["قؤعڑٹۓیءۂپ","آصڈفغحضخل","ذژثظبںم"],
+    numRows:["۱۲۳۴۵۶۷۸۹۰", L("- / : ؛ ( ) $ \u0651 @ \""), L("۔ ، ؟ ! ـ")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > ₹ & ٭ •"), L(". , ? ! ـ")],
+    extra:{ label:"◌ُ", ch:"\u064F", lp:"\u064F\u064E\u0650\u0651\u0652\u064B\u0670" } },
+  { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true, delTop:true, abcLabel:"אבג",
+    rows:["קראטוןםפ","שדגכעיחלךף","זסבהנמצתץ"],
+    numRows:["1234567890", L("- / : ; ( ) ₪ & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ € £ •"), L(". , ? ! '")] },
   { id:"ko", name:"Korean", native:"한국어", korean:true,
     rows:["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"],
     shiftRows:["ㅃㅉㄸㄲㅆㅛㅕㅑㅒㅖ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"] },
   { id:"ka", name:"Georgian", native:"ქართული", rows:["ქწერტყუიოპ","ასდფგჰჯკლ","ზხცვბნმ"],
     shiftRows:["ქჭერთყუიოპ","ასდფღჰჟკლ","ძხჩვბნმ"] },
-  { id:"hy", name:"Armenian", native:"Հայերեն", rows:["էթփձջւևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշ"] },
+  { id:"hy", name:"Armenian", native:"Հայերեն", abcLabel:"ԱԲԳ", numPlain:true,
+    rows:["էթփձջևրչճժշ","քոեռտըւիօպխ","ասդֆգհյկլծ","զղցվբնմ"],
+    shiftRows:[L("Է Թ Փ Ձ Ջ Եւ Ր Չ Ճ Ժ Շ"),"ՔՈԵՌՏԸՒԻՕՊԽ","ԱՍԴՖԳՀՅԿԼԾ","ԶՂՑՎԲՆՄ"],
+    numRows:["1234567890", L("- + = % * / < > ( )"), L(". , ? ! \" ' € # @"), L(": ՝ ՞ ՜ ՚")] },
 ];
-// Note: Armenian on iOS really is a 4-row letter layout; trim duplicate ւ in row 2.
-LANGS.find(l=>l.id==="hy").rows = ["էթփձջևրչճ","քոեռտըւիօպ","ասդֆգհյկլ","զղցվբնմշխծ"];
 
 const NUM_ROWS = ["1234567890", L("- / : ; ( ) $ & @ \""), L(". , ? ! '")];
 const SYM_ROWS = [L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". , ? ! '")];
@@ -242,6 +263,8 @@ function upper(c) {
   return c.toUpperCase();
 }
 function currentRows() {
+  if (page === "123" && lang.numRows) return lang.numRows.map(chars);
+  if (page === "sym" && lang.symRows) return lang.symRows.map(chars);
   if (page === "123") {
     const r = NUM_ROWS.map(chars);
     if (lang.digits) r[0] = [...lang.digits];
@@ -263,13 +286,13 @@ function render() {
     const row = document.createElement("div");
     row.className = "row";
     const last = i === rows.length - 1;
-    if (last) {
+    if (last && !(lang.delTop && page === "abc") && !(lang.numPlain && page !== "abc")) {
       // shift / #+= on left, delete on right
       const left = page === "abc"
         ? (lang.noShift ? null : mk("alt", shift === 2 ? ICONS.caps : shift ? ICONS.shiftOn : ICONS.shift, "shift"))
         : mk("alt", page === "123" ? "#+=" : "123", page === "123" ? "sym" : "123");
       const nLetters = r.length;
-      const special = Math.max(unit * 1.3, (w - nLetters * unit) / 2 - 6);
+      const special = Math.max(unit, Math.min(unit * 1.3, (w - nLetters * unit) / 2 - 6));
       if (left) { left.style.width = (Math.min(special, unit * 1.6) - 6) + "px"; left.style.marginRight = "auto"; row.appendChild(left); }
       const mid = document.createElement("div");
       mid.style.display = "flex";
@@ -285,13 +308,18 @@ function render() {
       row.style.padding = "0";
     } else {
       r.forEach(c => { const k = mk("", c, "char", c); k.style.width = (unit - 6) + "px"; row.appendChild(k); });
+      if (i === 0 && lang.delTop && page === "abc") {
+        const del = mk("alt", ICONS.del, "del");
+        del.style.width = (unit * 1.2 - 6) + "px"; del.style.marginLeft = "auto";
+        row.style.justifyContent = "flex-end"; row.appendChild(del);
+      }
     }
     kb.appendChild(row);
   });
   // bottom row
   const row = document.createElement("div");
   row.className = "row";
-  const b123 = mk("alt", page === "abc" ? (lang.digits ? lang.digits.slice(0,3) : "123") : "ABC", page === "abc" ? "123" : "abc");
+  const b123 = mk("alt", page === "abc" ? (lang.digits ? lang.digits.slice(0,3) : "123") : (lang.abcLabel || "ABC"), page === "abc" ? "123" : "abc");
   const glob = mk("alt", ICONS.globe, "globe");
   const space = mk("space", lang.native.toLowerCase() === "english" ? "space" : lang.native, "space");
   const ret = mk("alt ret", "return", "ret");
@@ -299,7 +327,15 @@ function render() {
   glob.style.width = (unit * 1.25 - 6) + "px";
   ret.style.width = (unit * 2.5 - 6) + "px";
   space.style.flex = "1";
-  [b123, glob, space, ret].forEach(k => row.appendChild(k));
+  const keys = [b123, glob, space];
+  if (lang.extra && (page === "abc" || lang.extra.all)) {
+    const x = mk("", lang.extra.label, "char", lang.extra.ch);
+    x.style.width = (unit * 1.25 - 6) + "px"; x.style.fontSize = "20px";
+    if (lang.extra.title) x.title = lang.extra.title;
+    keys.push(x);
+  }
+  keys.push(ret);
+  keys.forEach(k => row.appendChild(k));
   kb.appendChild(row);
 
   out.dir = lang.rtl ? "rtl" : "ltr";
@@ -309,9 +345,9 @@ function render() {
 function mk(cls, html, action, ch) {
   const k = document.createElement("div");
   k.className = "key " + cls;
-  k.innerHTML = html;
+  k.innerHTML = (ch !== undefined && /^\p{M}$/u.test(ch)) ? "◌" + ch : html;
   k.dataset.action = action;
-  if (ch !== undefined) k.dataset.ch = ch;
+  if (ch !== undefined) { k.dataset.ch = ch; if ([...ch].length > 1) k.classList.add("word"); }
   if (action === "shift" && shift) k.classList.add("on");
   return k;
 }
@@ -382,9 +418,94 @@ function hangul(j) {
   insertText(j);
 }
 
+// ---------- Vietnamese Telex (s f r x j = tones, z = no tone, aa ee oo aw ow uw w dd) ----------
+const TONES = { s:"\u0301", f:"\u0300", r:"\u0309", x:"\u0303", j:"\u0323" };
+const TONE_MARKS = /[\u0300\u0301\u0303\u0309\u0323]/;
+const VOWELS = "aăâeêioôơuưy";
+const lc = ch => ch.toLowerCase();
+function matchCase(src, ch) { return src === src.toUpperCase() && src !== src.toLowerCase() ? ch.toUpperCase() : ch; }
+function stripTone(word) {
+  let tone = "";
+  const out = [...word].map(ch => {
+    const d = ch.normalize("NFD"), m = d.match(TONE_MARKS);
+    if (m) tone = m[0];
+    return d.replace(TONE_MARKS, "").normalize("NFC");
+  });
+  return [out, tone];
+}
+function placeTone(chars, tone) {
+  if (!tone) return chars.join("");
+  let idx = chars.map((c, i) => VOWELS.includes(lc(c)) ? i : -1).filter(i => i >= 0);
+  if (!idx.length) return chars.join("");
+  const w = chars.map(lc).join("");
+  // "qu" and "gi" (before another vowel): the u / i belongs to the consonant
+  if (idx.length > 1 && ((w.startsWith("qu") && idx[0] === 1) || (w.startsWith("gi") && idx[0] === 1))) idx = idx.slice(1);
+  // only the first vowel cluster counts
+  const cluster = [idx[0]];
+  for (let k = 1; k < idx.length && idx[k] === idx[k - 1] + 1; k++) cluster.push(idx[k]);
+  let pos;
+  const marked = cluster.filter(i => "ăâêôơư".includes(lc(chars[i])));
+  if (marked.length) pos = marked.find(i => lc(chars[i]) === "ơ") ?? marked[marked.length - 1];
+  else if (cluster.length === 1) pos = cluster[0];
+  else if (cluster[cluster.length - 1] < chars.length - 1) pos = cluster[cluster.length - 1];   // closed syllable: toán, hoàng
+  else if (cluster.length === 3) pos = cluster[1];                                              // khuỷa-style: middle
+  else pos = cluster[0];                                                                        // open: múa, tái
+  chars = chars.slice();
+  chars[pos] = (chars[pos].normalize("NFD") + tone).normalize("NFC");
+  return chars.join("");
+}
+function telexKey(key) {
+  const a = out.selectionStart;
+  if (a !== out.selectionEnd) return false;
+  const m = out.value.slice(0, a).match(/\p{L}+$/u);
+  if (!m) { if (lc(key) === "w") { insertText(matchCase(key, "ư")); return true; } return false; }
+  const word = m[0];
+  let [chars, tone] = stripTone(word);
+  const k = lc(key);
+  const hasVowel = chars.some(c => VOWELS.includes(lc(c)));
+  const done = (cs, t) => { replaceBefore(word.length, placeTone(cs, t)); return true; };
+
+  if (TONES[k] && hasVowel) {
+    if (tone === TONES[k]) return done([...chars, key], "");   // typed twice: undo, keep the letter
+    return done(chars, TONES[k]);
+  }
+  if (k === "z" && tone) return done(chars, "");
+  if (k === "d" && chars.length && "dđ".includes(lc(chars[0]))) {
+    if (lc(chars[0]) === "d") { chars[0] = matchCase(chars[0], "đ"); return done(chars, tone); }
+    chars[0] = matchCase(chars[0], "d"); return done([...chars, key], tone);
+  }
+  const HAT = { a:"â", e:"ê", o:"ô" };
+  if (HAT[k]) {
+    for (let i = chars.length - 1; i >= 0 && i >= chars.length - 3; i--) {
+      const c = lc(chars[i]);
+      if (c === k) { chars[i] = matchCase(chars[i], HAT[k]); return done(chars, tone); }
+      if (c === HAT[k]) { chars[i] = matchCase(chars[i], k); return done([...chars, key], tone); }
+    }
+  }
+  if (k === "w") {
+    if (chars.length === 1 && lc(chars[0]) === "ư") return done([matchCase(chars[0], "w")], tone);
+    const s = chars.map(lc).join("");
+    const uo = s.lastIndexOf("uo");
+    if (uo >= 0 && uo >= chars.length - 3) {
+      chars[uo] = matchCase(chars[uo], "ư"); chars[uo + 1] = matchCase(chars[uo + 1], "ơ"); return done(chars, tone);
+    }
+    const HORN = { a:"ă", o:"ơ", u:"ư" }, UN = { "ă":"a", "ơ":"o", "ư":"u" };
+    for (let i = chars.length - 1; i >= 0 && i >= chars.length - 3; i--) {
+      const c = lc(chars[i]);
+      if (HORN[c]) { chars[i] = matchCase(chars[i], HORN[c]); return done(chars, tone); }
+      if (UN[c]) { chars[i] = matchCase(chars[i], UN[c]); return done([...chars, key], tone); }
+    }
+    if (!hasVowel) return done([...chars, matchCase(key, "ư")], tone);
+  }
+  if (!tone) return false;
+  return done([...chars, key], tone);   // re-place the tone as the word grows (hoá → hoàng)
+}
+
 // ---------- actions ----------
 function typeChar(c) {
-  if (lang.korean && page === "abc") hangul(c); else insertText(c);
+  if (lang.korean && page === "abc") hangul(c);
+  else if (lang.telex && page === "abc" && /^[a-z]$/i.test(c) && telexKey(c)) {}
+  else insertText(c);
   if (page === "abc" && shift === 1) { shift = 0; render(); }
   else if (page !== "abc" && c === "'" ) { page = "abc"; render(); }
 }
@@ -407,13 +528,13 @@ function act(action, ch) {
       const a = out.selectionStart;
       if (a >= 2 && out.value[a - 1] === " " && /[^\s.!?]/u.test(out.value[a - 2]) && Date.now() - lastSpace < 500) {
         replaceBefore(1, lang.rtl && lang.id !== "he" ? ". " : ". ");
-        if (!lang.noShift) { shift = 1; render(); }
+        if (!lang.noShift && !lang.manualShift) { shift = 1; render(); }
       } else insertText(" ");
       lastSpace = Date.now();
       if (page !== "abc") { page = "abc"; render(); }
       break;
     }
-    case "ret": insertText("\n"); if (!lang.noShift && page === "abc") { shift = 1; render(); } break;
+    case "ret": insertText("\n"); if (!lang.noShift && !lang.manualShift && page === "abc") { shift = 1; render(); } break;
     case "globe": setLang(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]); break;
   }
   out.focus({ preventScroll: true });
@@ -425,6 +546,7 @@ let press = null;
 const lpMap = () => page === "abc" ? (lang.lp || {}) : NUM_LP;
 function variantsFor(ch) {
   const lo = ch.toLowerCase();
+  if (lang.extra && ch === lang.extra.ch) return lang.extra.lp ? [...lang.extra.lp] : null;
   let v = lpMap()[ch] || lpMap()[lo];
   if (!v) return null;
   v = [...v];
@@ -435,7 +557,7 @@ function showBubble(key) {
   const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
   const b = document.createElement("div");
   b.className = "bubble";
-  b.textContent = key.dataset.ch;
+  b.textContent = key.dataset.ch === "\u200C" ? "⋮" : key.dataset.ch;
   b.style.width = Math.max(r.width + 16, 44) + "px";
   b.style.height = "54px";
   b.style.left = (r.left - p.left + r.width / 2 - Math.max(r.width + 16, 44) / 2) + "px";
@@ -447,7 +569,7 @@ function showPop(key, vars) {
   const r = key.getBoundingClientRect(), p = kb.getBoundingClientRect();
   const pop = document.createElement("div");
   pop.className = "pop";
-  vars.forEach((v, i) => { const b = document.createElement("b"); b.textContent = v; if (i === 0) b.className = "sel"; pop.appendChild(b); });
+  vars.forEach((v, i) => { const b = document.createElement("b"); b.textContent = /\p{M}/u.test(v) ? "◌" + v : v; b.dataset.v = v; if (i === 0) b.className = "sel"; pop.appendChild(b); });
   kb.appendChild(pop);
   const pw = pop.offsetWidth;
   let left = r.left - p.left + r.width / 2 - 21;
@@ -465,18 +587,35 @@ function selectInPop(x) {
     if (x >= br.left) best = i;
   });
   items.forEach((b, i) => b.classList.toggle("sel", i === best));
-  press.sel = items[best].textContent;
+  press.sel = items[best].dataset.v;
 }
 function endPress(commit) {
   if (!press) return;
   const p = press; press = null;
   clearTimeout(p.timer); clearInterval(p.repeat);
   p.key.classList.remove("down");
-  p.bubble && p.bubble.remove(); p.pop && p.pop.remove();
+  p.bubble && p.bubble.remove();
+  // held without sliding: keep the accent bar open so a variant can be tapped
+  if (commit && p.pop && !p.moved) { openSticky(p.pop); return; }
+  p.pop && p.pop.remove();
   if (!commit) return;
   if (p.pop) { if (p.sel) typeChar(p.sel); out.focus({ preventScroll: true }); }
   else if (!p.repeated) act(p.key.dataset.action, p.key.dataset.ch);
 }
+let sticky = null;
+function closeSticky() { if (sticky) { sticky.remove(); sticky = null; } }
+function openSticky(pop) {
+  sticky = pop;
+  pop.classList.add("sticky");
+  [...pop.children].forEach(b => b.classList.remove("sel"));
+}
+document.addEventListener("pointerdown", e => {
+  if (!sticky) return;
+  const item = e.target.closest(".pop.sticky b");
+  if (item) { e.preventDefault(); e.stopPropagation(); typeChar(item.dataset.v); closeSticky(); out.focus({ preventScroll: true }); return; }
+  closeSticky();   // tapping anywhere else just closes it (and that tap still counts)
+}, true);
+kb.addEventListener("contextmenu", e => e.preventDefault());
 kb.addEventListener("pointerdown", e => {
   const key = e.target.closest(".key");
   if (!key) return;
@@ -502,7 +641,12 @@ kb.addEventListener("pointerdown", e => {
     }, 450);
   }
 });
-kb.addEventListener("pointermove", e => { if (press && press.pop) selectInPop(e.clientX); });
+kb.addEventListener("pointermove", e => {
+  if (!press || !press.pop) return;
+  if (press.startX === undefined) press.startX = e.clientX;
+  if (Math.abs(e.clientX - press.startX) > 6 || e.clientY < press.key.getBoundingClientRect().top - 4) press.moved = true;
+  if (press.moved) selectInPop(e.clientX);
+});
 kb.addEventListener("pointerup", () => endPress(true));
 kb.addEventListener("pointercancel", () => endPress(false));
 
@@ -603,7 +747,7 @@ input.addEventListener("keydown", e => {
 
 function setLang(l) {
   lang = l; page = "abc";
-  shift = l.noShift || l.korean ? 0 : (out.value === "" || /[.!?\n]\s*$/.test(out.value) ? 1 : 0);
+  shift = l.noShift || l.korean || l.manualShift ? 0 : (out.value === "" || /[.!?\n]\s*$/.test(out.value) ? 1 : 0);
   try { localStorage.setItem("ikb-lang", l.id); } catch (e) {}
   const u = new URL(location); u.hash = l.id; history.replaceState(null, "", u);
   render();
@@ -613,12 +757,13 @@ document.getElementById("copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(out.value); } catch (e) { out.select(); document.execCommand("copy"); }
   const b = document.getElementById("copy"); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200);
 });
-document.getElementById("clear").addEventListener("click", () => { out.value = ""; if (!lang.noShift && !lang.korean) shift = 1; render(); out.focus(); });
+document.getElementById("clear").addEventListener("click", () => { out.value = ""; if (!lang.noShift && !lang.korean && !lang.manualShift) shift = 1; render(); out.focus(); });
 
 let initial = location.hash.slice(1);
 try { initial = initial || localStorage.getItem("ikb-lang"); } catch (e) {}
 setLang(LANGS.find(l => l.id === initial) || LANGS[0]);
-new ResizeObserver(() => render()).observe(kb);
+let lastW = 0;
+new ResizeObserver(() => { const w = kb.clientWidth; if (w !== lastW && !press && !sticky) { lastW = w; render(); } }).observe(kb);
 </script>
 </body>
 </html>
