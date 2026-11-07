@@ -86,7 +86,7 @@
 
   .kb {
     background: var(--kb); padding: 8px 3px 26px; user-select: none; -webkit-user-select: none;
-    touch-action: manipulation; position: relative;
+    touch-action: none; position: relative; -webkit-touch-callout: none;
   }
   .row { display: flex; justify-content: center; gap: 0; margin-bottom: 11px; }
   .row:last-child { margin-bottom: 0; }
@@ -115,6 +115,9 @@
     align-items: center; justify-content: center; border-radius: 6px;
   }
   .pop b.sel { background: var(--accent); color: #fff; }
+  .pop.sticky { pointer-events: auto; }
+  .pop.sticky b { cursor: pointer; }
+  .pop.sticky b:hover { background: var(--accent); color: #fff; }
   .bubble {
     position: absolute; z-index: 9; background: var(--pop); color: var(--key-text);
     border-radius: 9px; box-shadow: 0 4px 14px rgba(0,0,0,.3); font-size: 32px;
@@ -591,11 +594,28 @@ function endPress(commit) {
   const p = press; press = null;
   clearTimeout(p.timer); clearInterval(p.repeat);
   p.key.classList.remove("down");
-  p.bubble && p.bubble.remove(); p.pop && p.pop.remove();
+  p.bubble && p.bubble.remove();
+  // held without sliding: keep the accent bar open so a variant can be tapped
+  if (commit && p.pop && !p.moved) { openSticky(p.pop); return; }
+  p.pop && p.pop.remove();
   if (!commit) return;
   if (p.pop) { if (p.sel) typeChar(p.sel); out.focus({ preventScroll: true }); }
   else if (!p.repeated) act(p.key.dataset.action, p.key.dataset.ch);
 }
+let sticky = null;
+function closeSticky() { if (sticky) { sticky.remove(); sticky = null; } }
+function openSticky(pop) {
+  sticky = pop;
+  pop.classList.add("sticky");
+  [...pop.children].forEach(b => b.classList.remove("sel"));
+}
+document.addEventListener("pointerdown", e => {
+  if (!sticky) return;
+  const item = e.target.closest(".pop.sticky b");
+  if (item) { e.preventDefault(); e.stopPropagation(); typeChar(item.dataset.v); closeSticky(); out.focus({ preventScroll: true }); return; }
+  closeSticky();   // tapping anywhere else just closes it (and that tap still counts)
+}, true);
+kb.addEventListener("contextmenu", e => e.preventDefault());
 kb.addEventListener("pointerdown", e => {
   const key = e.target.closest(".key");
   if (!key) return;
@@ -621,7 +641,12 @@ kb.addEventListener("pointerdown", e => {
     }, 450);
   }
 });
-kb.addEventListener("pointermove", e => { if (press && press.pop) selectInPop(e.clientX); });
+kb.addEventListener("pointermove", e => {
+  if (!press || !press.pop) return;
+  if (press.startX === undefined) press.startX = e.clientX;
+  if (Math.abs(e.clientX - press.startX) > 6 || e.clientY < press.key.getBoundingClientRect().top - 4) press.moved = true;
+  if (press.moved) selectInPop(e.clientX);
+});
 kb.addEventListener("pointerup", () => endPress(true));
 kb.addEventListener("pointercancel", () => endPress(false));
 
@@ -737,7 +762,8 @@ document.getElementById("clear").addEventListener("click", () => { out.value = "
 let initial = location.hash.slice(1);
 try { initial = initial || localStorage.getItem("ikb-lang"); } catch (e) {}
 setLang(LANGS.find(l => l.id === initial) || LANGS[0]);
-new ResizeObserver(() => render()).observe(kb);
+let lastW = 0;
+new ResizeObserver(() => { const w = kb.clientWidth; if (w !== lastW && !press && !sticky) { lastW = w; render(); } }).observe(kb);
 </script>
 </body>
 </html>
