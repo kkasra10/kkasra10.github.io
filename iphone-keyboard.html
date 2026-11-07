@@ -198,7 +198,7 @@ const LANGS = [
   { id:"el", name:"Greek", native:"Ελληνικά", rows:[";ςερτυθιοπ","ασδφγηξκλ","ζχψωβνμ"],
     shiftRows:[":΅ΕΡΤΥΘΙΟΠ","ΑΣΔΦΓΗΞΚΛ","ΖΧΨΩΒΝΜ"],
     lp:{ "α":"ά", "ε":"έ", "η":"ή", "ι":"ίϊΐ", "ο":"ό", "υ":"ύϋΰ", "ω":"ώ", "Α":"Ά", "Ε":"Έ", "Η":"Ή", "Ι":"ΊΪ", "Ο":"Ό", "Υ":"ΎΫ", "Ω":"Ώ" } },
-  { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠",
+  { id:"ar", name:"Arabic", native:"العربية", rtl:true, noShift:true, digits:"١٢٣٤٥٦٧٨٩٠", abcLabel:"ابج",
     rows:["ضصثقفغعهخحج","شسيبلاتنمكة","ءظطذدزروى"], lp:{ "ا":"أإآ", "و":"ؤ", "ي":"ئ", "ه":"ة" },
     numRows:["١٢٣٤٥٦٧٨٩٠", L("- / : ؛ ( ) $ & @ \""), L(". ، ؟ ! '")],
     symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > € £ ¥ •"), L(". ، ؟ ! '")],
@@ -207,11 +207,17 @@ const LANGS = [
     rows:["ضصقفغعهخحجچ","شسیبلاتنمکگ","ظطژزرذدپوث"],
     numRows:["۱۲۳۴۵۶۷۸۹۰", L("- / : ؛ ( ) ریال @ « »"), L(". ، ؟ ! ,")],
     symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > & • ' \""), L(". ، ؟ ! ,")],
-    extra:{ label:"⋮", ch:"\u200C", title:"half-space (ZWNJ)" }, lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
-  { id:"ur", name:"Urdu", native:"اردو", rtl:true, noShift:true, digits:"۱۲۳۴۵۶۷۸۹۰",
-    rows:["طصھدٹپتبجح","مورنلہاکیس","زذڈثغعشخچق"], lp:{ "ی":"ےئ", "ا":"آ", "ہ":"ۂة" } },
-  { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true,
-    rows:["פםןוטארק","ףךלחיעכגדש","ץתצמנהבסז"] },
+    extra:{ label:"⋮", ch:"\u200C", title:"half-space (ZWNJ)", all:true }, abcLabel:"ابج", lp:{ "ا":"آأإ", "ی":"ئي", "ه":"ۀة", "ک":"ك", "و":"ؤ" } },
+  { id:"ur", name:"Urdu", native:"اردو", rtl:true, manualShift:true, digits:"۱۲۳۴۵۶۷۸۹۰", abcLabel:"ابج",
+    rows:["قوعرتےیئہپ","اسدفگھجکل","زشچطبنم"],
+    shiftRows:["قؤعڑٹۓیءۂپ","آصڈفغحضخل","ذژثظبںم"],
+    numRows:["۱۲۳۴۵۶۷۸۹۰", L("- / : ؛ ( ) $ \u0651 @ \""), L("۔ ، ؟ ! ـ")],
+    symRows:[L("[ ] { } # ٪ ^ * + ="), L("_ \\ | ~ < > ₹ & ٭ •"), L(". , ? ! ـ")],
+    extra:{ label:"◌ُ", ch:"\u064F", lp:"\u064F\u064E\u0650\u0651\u0652\u064B\u0670" } },
+  { id:"he", name:"Hebrew", native:"עברית", rtl:true, noShift:true, delTop:true, abcLabel:"אבג",
+    rows:["קראטוןםפ","שדגכעיחלךף","זסבהנמצתץ"],
+    numRows:["1234567890", L("- / : ; ( ) ₪ & @ \""), L(". , ? ! '")],
+    symRows:[L("[ ] { } # % ^ * + ="), L("_ \\ | ~ < > $ € £ •"), L(". , ? ! '")] },
   { id:"ko", name:"Korean", native:"한국어", korean:true,
     rows:["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"],
     shiftRows:["ㅃㅉㄸㄲㅆㅛㅕㅑㅒㅖ","ㅁㄴㅇㄹㅎㅗㅓㅏㅣ","ㅋㅌㅊㅍㅠㅜㅡ"] },
@@ -272,7 +278,7 @@ function render() {
     const row = document.createElement("div");
     row.className = "row";
     const last = i === rows.length - 1;
-    if (last) {
+    if (last && !(lang.delTop && page === "abc")) {
       // shift / #+= on left, delete on right
       const left = page === "abc"
         ? (lang.noShift ? null : mk("alt", shift === 2 ? ICONS.caps : shift ? ICONS.shiftOn : ICONS.shift, "shift"))
@@ -294,13 +300,18 @@ function render() {
       row.style.padding = "0";
     } else {
       r.forEach(c => { const k = mk("", c, "char", c); k.style.width = (unit - 6) + "px"; row.appendChild(k); });
+      if (i === 0 && lang.delTop && page === "abc") {
+        const del = mk("alt", ICONS.del, "del");
+        del.style.width = (unit * 1.2 - 6) + "px"; del.style.marginLeft = "auto";
+        row.style.justifyContent = "flex-end"; row.appendChild(del);
+      }
     }
     kb.appendChild(row);
   });
   // bottom row
   const row = document.createElement("div");
   row.className = "row";
-  const b123 = mk("alt", page === "abc" ? (lang.digits ? lang.digits.slice(0,3) : "123") : "ABC", page === "abc" ? "123" : "abc");
+  const b123 = mk("alt", page === "abc" ? (lang.digits ? lang.digits.slice(0,3) : "123") : (lang.abcLabel || "ABC"), page === "abc" ? "123" : "abc");
   const glob = mk("alt", ICONS.globe, "globe");
   const space = mk("space", lang.native.toLowerCase() === "english" ? "space" : lang.native, "space");
   const ret = mk("alt ret", "return", "ret");
@@ -309,7 +320,7 @@ function render() {
   ret.style.width = (unit * 2.5 - 6) + "px";
   space.style.flex = "1";
   const keys = [b123, glob, space];
-  if (lang.extra) {
+  if (lang.extra && (page === "abc" || lang.extra.all)) {
     const x = mk("", lang.extra.label, "char", lang.extra.ch);
     x.style.width = (unit * 1.25 - 6) + "px"; x.style.fontSize = "20px";
     if (lang.extra.title) x.title = lang.extra.title;
@@ -326,7 +337,7 @@ function render() {
 function mk(cls, html, action, ch) {
   const k = document.createElement("div");
   k.className = "key " + cls;
-  k.innerHTML = html;
+  k.innerHTML = (ch !== undefined && /^\p{M}$/u.test(ch)) ? "◌" + ch : html;
   k.dataset.action = action;
   if (ch !== undefined) { k.dataset.ch = ch; if ([...ch].length > 1) k.classList.add("word"); }
   if (action === "shift" && shift) k.classList.add("on");
@@ -424,13 +435,13 @@ function act(action, ch) {
       const a = out.selectionStart;
       if (a >= 2 && out.value[a - 1] === " " && /[^\s.!?]/u.test(out.value[a - 2]) && Date.now() - lastSpace < 500) {
         replaceBefore(1, lang.rtl && lang.id !== "he" ? ". " : ". ");
-        if (!lang.noShift) { shift = 1; render(); }
+        if (!lang.noShift && !lang.manualShift) { shift = 1; render(); }
       } else insertText(" ");
       lastSpace = Date.now();
       if (page !== "abc") { page = "abc"; render(); }
       break;
     }
-    case "ret": insertText("\n"); if (!lang.noShift && page === "abc") { shift = 1; render(); } break;
+    case "ret": insertText("\n"); if (!lang.noShift && !lang.manualShift && page === "abc") { shift = 1; render(); } break;
     case "globe": setLang(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]); break;
   }
   out.focus({ preventScroll: true });
@@ -621,7 +632,7 @@ input.addEventListener("keydown", e => {
 
 function setLang(l) {
   lang = l; page = "abc";
-  shift = l.noShift || l.korean ? 0 : (out.value === "" || /[.!?\n]\s*$/.test(out.value) ? 1 : 0);
+  shift = l.noShift || l.korean || l.manualShift ? 0 : (out.value === "" || /[.!?\n]\s*$/.test(out.value) ? 1 : 0);
   try { localStorage.setItem("ikb-lang", l.id); } catch (e) {}
   const u = new URL(location); u.hash = l.id; history.replaceState(null, "", u);
   render();
@@ -631,7 +642,7 @@ document.getElementById("copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(out.value); } catch (e) { out.select(); document.execCommand("copy"); }
   const b = document.getElementById("copy"); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200);
 });
-document.getElementById("clear").addEventListener("click", () => { out.value = ""; if (!lang.noShift && !lang.korean) shift = 1; render(); out.focus(); });
+document.getElementById("clear").addEventListener("click", () => { out.value = ""; if (!lang.noShift && !lang.korean && !lang.manualShift) shift = 1; render(); out.focus(); });
 
 let initial = location.hash.slice(1);
 try { initial = initial || localStorage.getItem("ikb-lang"); } catch (e) {}
